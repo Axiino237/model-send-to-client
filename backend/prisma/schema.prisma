@@ -1,0 +1,91 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String   // "ADMIN" | "CREATOR"
+  createdAt DateTime @default(now()) @map("created_at")
+  models    Model[]
+
+  @@map("users")
+}
+
+model Model {
+  id          String       @id @default(uuid())
+  userId      String       @map("user_id")
+  name        String
+  description String?
+  fileUrl     String?      @map("file_url")
+  thumbnail   String?      @map("thumbnail")
+  size        Int?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shares      Share[]
+  photos      Photo[]
+  attachments Attachment[]
+
+  @@map("models")
+}
+
+model Share {
+  id            String      @id @default(uuid())
+  modelId       String      @map("model_id")
+  shareToken    String      @unique @map("share_token")
+  password      String?
+  passwordPlain String?     @map("password_plain")
+  expiresAt     DateTime?   @map("expires_at")
+  maxViews      Int?        @map("max_views")
+  views         Int         @default(0)
+  createdAt     DateTime    @default(now()) @map("created_at")
+  model         Model       @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  analytics     Analytics[]
+
+  @@map("shares")
+}
+
+model Analytics {
+  id        String   @id @default(uuid())
+  shareId   String   @map("share_id")
+  ip        String?
+  country   String?
+  device    String?
+  browser   String?
+  viewedAt  DateTime @default(now()) @map("viewed_at")
+  share     Share    @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  @@map("analytics")
+}
+
+model Photo {
+  id        String   @id @default(uuid())
+  modelId   String   @map("model_id")
+  fileUrl   String   @map("file_url")
+  name      String
+  size      Int
+  createdAt DateTime @default(now()) @map("created_at")
+  model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@map("photos")
+}
+
+model Attachment {
+  id        String   @id @default(uuid())
+  modelId   String   @map("model_id")
+  fileUrl   String   @map("file_url")
+  name      String
+  size      Int
+  createdAt DateTime @default(now()) @map("created_at")
+  model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+

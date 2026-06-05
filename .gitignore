@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+
+# Production builds
+dist/
+build/
+
+# Local env files
+.env
+.env.local
+.env.*.local
+
+# SQLite dev databases
+*.db
+*.db-journal
+
+# Large assets and uploads
+/backend/uploads/
+/backend/test_download.pdf
+
+# IDE/System files
+.vscode/
+.idea/
+.DS_Store
+*.log
