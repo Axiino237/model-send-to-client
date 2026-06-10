@@ -100,9 +100,16 @@ export class SharesService {
       throw new ForbiddenException('You do not own this share link');
     }
 
-    await this.prisma.share.delete({
-      where: { id: shareId },
-    });
+    try {
+      await this.prisma.share.delete({
+        where: { id: shareId },
+      });
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException('Share link not found');
+      }
+      throw error;
+    }
 
     return { message: 'Share link deleted successfully' };
   }
@@ -121,10 +128,17 @@ export class SharesService {
       throw new ForbiddenException('You do not own this share link');
     }
 
-    await this.prisma.share.update({
-      where: { id: shareId },
-      data: { views: 0 },
-    });
+    try {
+      await this.prisma.share.update({
+        where: { id: shareId },
+        data: { views: 0 },
+      });
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException('Share link not found');
+      }
+      throw error;
+    }
 
     return { message: 'View count reset successfully' };
   }

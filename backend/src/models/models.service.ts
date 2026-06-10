@@ -193,9 +193,16 @@ export class ModelsService {
       await this.storage.deleteFile(attachment.fileUrl);
     }
 
-    await this.prisma.model.delete({
-      where: { id: modelId },
-    });
+    try {
+      await this.prisma.model.delete({
+        where: { id: modelId },
+      });
+    } catch (error: any) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException('Model not found');
+      }
+      throw error;
+    }
 
     return { message: 'Model deleted successfully' };
   }
