@@ -11,7 +11,7 @@ export class SharesController {
   async createShare(
     @Request() req,
     @Param('modelId') modelId: string,
-    @Body() dto: { password?: string; expiresInDays?: number; maxViews?: number },
+    @Body() dto: { password?: string; expiresInDays?: number; maxViews?: number } = {},
   ) {
     return this.sharesService.createShare(req.user, modelId, dto);
   }

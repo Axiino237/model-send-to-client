@@ -24,7 +24,7 @@ export class SharesService {
       password?: string;
       expiresInDays?: number;
       maxViews?: number;
-    },
+    } = {},
   ) {
     const model = await this.prisma.model.findUnique({
       where: { id: modelId },
