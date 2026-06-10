@@ -20,6 +20,8 @@ import { ModelsService } from './models.service';
 import { StorageService } from '../storage/storage.service';
 import type { Response } from 'express';
 import * as fs from 'fs';
+import { diskStorage } from 'multer';
+import * as path from 'path';
 
 @Controller('models')
 export class ModelsController {
@@ -38,6 +40,19 @@ export class ModelsController {
         { name: 'attachments', maxCount: 10 },
       ],
       {
+        storage: diskStorage({
+          destination: (req, file, cb) => {
+            const tempDir = path.join(process.cwd(), 'uploads', 'temp');
+            if (!fs.existsSync(tempDir)) {
+              fs.mkdirSync(tempDir, { recursive: true });
+            }
+            cb(null, tempDir);
+          },
+          filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+            cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+          },
+        }),
         limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
       },
     ),

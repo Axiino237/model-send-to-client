@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import * as path from 'path';
+import * as fs from 'fs';
 
 @Injectable()
 export class ModelsService {
@@ -31,58 +32,76 @@ export class ModelsService {
     let fileUrl: string | null = null;
     let size: number | null = null;
 
-    if (file) {
-      const fileExt = path.extname(file.originalname).toLowerCase();
-      const allowedExtensions = ['.glb', '.gltf', '.fbx', '.obj'];
-      if (!allowedExtensions.includes(fileExt)) {
-        throw new BadRequestException(`Invalid file format. Supported formats: ${allowedExtensions.join(', ')}`);
+    try {
+      if (file) {
+        const fileExt = path.extname(file.originalname).toLowerCase();
+        const allowedExtensions = ['.glb', '.gltf', '.fbx', '.obj'];
+        if (!allowedExtensions.includes(fileExt)) {
+          throw new BadRequestException(`Invalid file format. Supported formats: ${allowedExtensions.join(', ')}`);
+        }
+
+        const storageKey = `models/${user.id}/${Date.now()}-${file.originalname}`;
+        fileUrl = await this.storage.uploadFile(file, storageKey);
+        size = file.size;
       }
 
-      const storageKey = `models/${user.id}/${Date.now()}-${file.originalname}`;
-      fileUrl = await this.storage.uploadFile(file, storageKey);
-      size = file.size;
-    }
+      const displayName = name || (file ? file.originalname.replace(path.extname(file.originalname), '') : 'Showcase');
 
-    const displayName = name || (file ? file.originalname.replace(path.extname(file.originalname), '') : 'Showcase');
-
-    const model = await this.prisma.model.create({
-      data: {
-        userId: user.id,
-        name: displayName,
-        description: description || null,
-        fileUrl,
-        size,
-        thumbnail: null,
-      },
-    });
-
-    for (const photo of photos) {
-      const photoKey = `photos/${user.id}/${Date.now()}-${photo.originalname}`;
-      const photoUrl = await this.storage.uploadFile(photo, photoKey);
-      await this.prisma.photo.create({
+      const model = await this.prisma.model.create({
         data: {
-          modelId: model.id,
-          fileUrl: photoUrl,
-          name: photo.originalname,
-          size: photo.size,
+          userId: user.id,
+          name: displayName,
+          description: description || null,
+          fileUrl,
+          size,
+          thumbnail: null,
         },
       });
-    }
 
-    for (const attachment of attachments) {
-      const attachmentKey = `attachments/${user.id}/${Date.now()}-${attachment.originalname}`;
-      const attachmentUrl = await this.storage.uploadFile(attachment, attachmentKey);
-      await this.prisma.attachment.create({
-        data: {
-          modelId: model.id,
-          fileUrl: attachmentUrl,
-          name: attachment.originalname,
-          size: attachment.size,
-        },
-      });
-    }
+      for (const photo of photos) {
+        const photoKey = `photos/${user.id}/${Date.now()}-${photo.originalname}`;
+        const photoUrl = await this.storage.uploadFile(photo, photoKey);
+        await this.prisma.photo.create({
+          data: {
+            modelId: model.id,
+            fileUrl: photoUrl,
+            name: photo.originalname,
+            size: photo.size,
+          },
+        });
+      }
 
-    return model;
+      for (const attachment of attachments) {
+        const attachmentKey = `attachments/${user.id}/${Date.now()}-${attachment.originalname}`;
+        const attachmentUrl = await this.storage.uploadFile(attachment, attachmentKey);
+        await this.prisma.attachment.create({
+          data: {
+            modelId: model.id,
+            fileUrl: attachmentUrl,
+            name: attachment.originalname,
+            size: attachment.size,
+          },
+        });
+      }
+
+      return model;
+    } finally {
+      // Clean up local temp files
+      const allFiles = [
+        ...(files?.file || []),
+        ...(files?.photos || []),
+        ...(files?.attachments || []),
+      ];
+      for (const f of allFiles) {
+        if (f.path && fs.existsSync(f.path)) {
+          try {
+            fs.unlinkSync(f.path);
+          } catch (err) {
+            // ignore error
+          }
+        }
+      }
+    }
   }
 
   async getModels(user: { id: string; role: string }, search?: string) {

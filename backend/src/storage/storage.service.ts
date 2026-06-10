@@ -49,12 +49,17 @@ export class StorageService {
   }
 
   async uploadFile(file: Express.Multer.File, key: string): Promise<string> {
+    const fileData = file.buffer || (file.path ? fs.readFileSync(file.path) : null);
+    if (!fileData) {
+      throw new Error('No file data available (both buffer and path are missing)');
+    }
+
     // AWS S3
     if (this.s3Client && this.bucketName) {
       const command = new PutObjectCommand({
         Bucket: this.bucketName,
         Key: key,
-        Body: file.buffer,
+        Body: fileData,
         ContentType: file.mimetype,
       });
       await this.s3Client.send(command);
@@ -65,7 +70,7 @@ export class StorageService {
     if (this.supabaseClient && this.supabaseBucket) {
       const { error } = await this.supabaseClient.storage
         .from(this.supabaseBucket)
-        .upload(key, file.buffer, {
+        .upload(key, fileData, {
           contentType: file.mimetype,
           upsert: true,
         });
@@ -79,7 +84,7 @@ export class StorageService {
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
     }
-    await fs.promises.writeFile(filePath, file.buffer);
+    await fs.promises.writeFile(filePath, fileData);
     return `local://${key}`;
   }
 
