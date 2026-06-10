@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, PayloadTooLargeException } from '@nestjs/common';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
@@ -74,7 +74,14 @@ export class StorageService {
           contentType: file.mimetype,
           upsert: true,
         });
-      if (error) throw new Error(`Supabase upload failed: ${error.message}`);
+      if (error) {
+        if (error.message.includes('exceeded the maximum allowed size')) {
+          throw new PayloadTooLargeException(
+            'File size exceeds the Supabase Storage bucket limit (default is 50MB). Please go to Supabase Dashboard -> Storage -> Edit Bucket and increase the Maximum File Size limit (e.g. set it to 100MB or higher).'
+          );
+        }
+        throw new Error(`Supabase upload failed: ${error.message}`);
+      }
       return `supabase://${this.supabaseBucket}/${key}`;
     }
 
