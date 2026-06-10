@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -9,9 +10,12 @@ export class StorageService {
   private readonly logger = new Logger(StorageService.name);
   private s3Client: S3Client | null = null;
   private bucketName: string | null = null;
+  private supabaseClient: SupabaseClient | null = null;
+  private supabaseBucket: string | null = null;
   private localUploadDir = path.join(process.cwd(), 'uploads');
 
   constructor() {
+    // AWS S3 setup
     const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
     const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
     const region = process.env.AWS_REGION;
@@ -19,22 +23,33 @@ export class StorageService {
 
     if (accessKeyId && secretAccessKey && region && this.bucketName) {
       this.s3Client = new S3Client({
-        credentials: {
-          accessKeyId,
-          secretAccessKey,
-        },
+        credentials: { accessKeyId, secretAccessKey },
         region,
       });
-      this.logger.log('Storage Service initialized in AWS S3 mode.');
-    } else {
-      this.logger.log('AWS S3 credentials missing. Storage Service initialized in Local Filesystem fallback mode.');
-      if (!fs.existsSync(this.localUploadDir)) {
-        fs.mkdirSync(this.localUploadDir, { recursive: true });
-      }
+      this.logger.log('Storage: AWS S3 mode');
+      return;
+    }
+
+    // Supabase Storage setup
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_KEY;
+    this.supabaseBucket = process.env.SUPABASE_STORAGE_BUCKET || 'model-files';
+
+    if (supabaseUrl && supabaseKey) {
+      this.supabaseClient = createClient(supabaseUrl, supabaseKey);
+      this.logger.log(`Storage: Supabase Storage mode (bucket: ${this.supabaseBucket})`);
+      return;
+    }
+
+    // Local filesystem fallback
+    this.logger.warn('Storage: Local Filesystem fallback mode (files lost on redeploy!)');
+    if (!fs.existsSync(this.localUploadDir)) {
+      fs.mkdirSync(this.localUploadDir, { recursive: true });
     }
   }
 
   async uploadFile(file: Express.Multer.File, key: string): Promise<string> {
+    // AWS S3
     if (this.s3Client && this.bucketName) {
       const command = new PutObjectCommand({
         Bucket: this.bucketName,
@@ -44,29 +59,53 @@ export class StorageService {
       });
       await this.s3Client.send(command);
       return `s3://${this.bucketName}/${key}`;
-    } else {
-      const filePath = path.join(this.localUploadDir, key);
-      const dirPath = path.dirname(filePath);
-      if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-      }
-      await fs.promises.writeFile(filePath, file.buffer);
-      return `local://${key}`;
     }
+
+    // Supabase Storage
+    if (this.supabaseClient && this.supabaseBucket) {
+      const { error } = await this.supabaseClient.storage
+        .from(this.supabaseBucket)
+        .upload(key, file.buffer, {
+          contentType: file.mimetype,
+          upsert: true,
+        });
+      if (error) throw new Error(`Supabase upload failed: ${error.message}`);
+      return `supabase://${this.supabaseBucket}/${key}`;
+    }
+
+    // Local fallback
+    const filePath = path.join(this.localUploadDir, key);
+    const dirPath = path.dirname(filePath);
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
+    }
+    await fs.promises.writeFile(filePath, file.buffer);
+    return `local://${key}`;
   }
 
   async getDownloadUrl(fileUrl: string): Promise<string> {
+    // AWS S3
     if (fileUrl.startsWith('s3://') && this.s3Client && this.bucketName) {
       const key = fileUrl.replace(`s3://${this.bucketName}/`, '');
-      const command = new GetObjectCommand({
-        Bucket: this.bucketName,
-        Key: key,
-      });
+      const command = new GetObjectCommand({ Bucket: this.bucketName, Key: key });
       return await getSignedUrl(this.s3Client, command, { expiresIn: 900 });
-    } else if (fileUrl.startsWith('local://')) {
+    }
+
+    // Supabase Storage
+    if (fileUrl.startsWith('supabase://') && this.supabaseClient) {
+      const parts = fileUrl.replace('supabase://', '').split('/');
+      const bucket = parts[0];
+      const key = parts.slice(1).join('/');
+      const { data } = this.supabaseClient.storage.from(bucket).getPublicUrl(key);
+      return data.publicUrl;
+    }
+
+    // Local fallback
+    if (fileUrl.startsWith('local://')) {
       const key = fileUrl.replace('local://', '');
       return `/api/models/download/${key}`;
     }
+
     return fileUrl;
   }
 
@@ -74,11 +113,12 @@ export class StorageService {
     try {
       if (fileUrl.startsWith('s3://') && this.s3Client && this.bucketName) {
         const key = fileUrl.replace(`s3://${this.bucketName}/`, '');
-        const command = new DeleteObjectCommand({
-          Bucket: this.bucketName,
-          Key: key,
-        });
-        await this.s3Client.send(command);
+        await this.s3Client.send(new DeleteObjectCommand({ Bucket: this.bucketName, Key: key }));
+      } else if (fileUrl.startsWith('supabase://') && this.supabaseClient) {
+        const parts = fileUrl.replace('supabase://', '').split('/');
+        const bucket = parts[0];
+        const key = parts.slice(1).join('/');
+        await this.supabaseClient.storage.from(bucket).remove([key]);
       } else if (fileUrl.startsWith('local://')) {
         const key = fileUrl.replace('local://', '');
         const filePath = path.join(this.localUploadDir, key);
