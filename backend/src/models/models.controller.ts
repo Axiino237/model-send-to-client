@@ -53,7 +53,6 @@ export class ModelsController {
             cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
           },
         }),
-        limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
       },
     ),
   )
