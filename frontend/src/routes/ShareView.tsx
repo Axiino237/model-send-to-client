@@ -8,6 +8,9 @@ import {
   Layers, ChevronLeft, ChevronRight, User, Eye
 } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+
 const autoUnlockedTokens = new Set<string>();
 
 export default function ShareView() {
@@ -30,7 +33,7 @@ export default function ShareView() {
   const getFullUrl = (url: string | null | undefined) => {
     if (!url) return '';
     if (url.startsWith('/api/')) {
-      return `http://localhost:5000${url}`;
+      return `${API_BASE_URL}${url}`;
     }
     return url;
   };

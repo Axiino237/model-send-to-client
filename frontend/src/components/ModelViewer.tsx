@@ -4,6 +4,9 @@ import { OrbitControls, useGLTF, useFBX, Center, Html, useProgress } from '@reac
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { Maximize2, Minimize2, RotateCw, Shield, Sliders, Sun, Video } from 'lucide-react';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+
+
 interface ModelViewerProps {
   modelUrl: string;
   modelName: string;
@@ -140,7 +143,7 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
   // Convert absolute or local URLs to the backend full address if necessary
   const getFullUrl = (url: string) => {
     if (url.startsWith('/api/')) {
-      return `http://localhost:5000${url}`;
+      return `${API_BASE_URL}${url}`;
     }
     return url;
   };
