@@ -8,7 +8,7 @@ import {
   Layers, ChevronLeft, ChevronRight, User, Eye
 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://model-send-to-client.onrender.com';
 
 
 const autoUnlockedTokens = new Set<string>();

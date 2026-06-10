@@ -4,7 +4,7 @@ import { OrbitControls, useGLTF, useFBX, Center, Html, useProgress } from '@reac
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
 import { Maximize2, Minimize2, RotateCw, Shield, Sliders, Sun, Video } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://model-send-to-client.onrender.com';
 
 
 interface ModelViewerProps {
