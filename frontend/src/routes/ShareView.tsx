@@ -26,7 +26,7 @@ export default function ShareView() {
   const [clientName, setClientName] = useState('');
   const [hasLoggedView, setHasLoggedView] = useState(false);
 
-  const [activeTab, setActiveTab] = useState<'3d' | 'photos'>('3d');
+  const [_activeTab, setActiveTab] = useState<'3d' | 'photos'>('3d');
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [imageLoading, setImageLoading] = useState(true);
 

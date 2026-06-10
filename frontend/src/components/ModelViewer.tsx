@@ -90,9 +90,7 @@ function ModelRenderer({ url, wireframe }: RendererProps) {
   }
 }
 
-function ModelRendererWithErrorBoundary({ url, wireframe }: RendererProps) {
-  return <ModelRenderer url={url} wireframe={wireframe} />;
-}
+
 
 // Reset Camera Action helper
 function CameraController({ resetTrigger }: { resetTrigger: number }) {
