@@ -1218,7 +1218,7 @@ export default function Dashboard() {
                   {/* Expiration Days */}
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                      Expires In (Days)
+                      Expires In (Days) (Optional)
                     </label>
                     <input
                       type="number"
@@ -1233,7 +1233,7 @@ export default function Dashboard() {
                   {/* Max Views */}
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                      Max View Count
+                      Max View Count (Optional)
                     </label>
                     <input
                       type="number"
