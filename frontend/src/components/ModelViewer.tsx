@@ -1,4 +1,4 @@
-import { Suspense, useState, useRef, useEffect } from 'react';
+import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { Canvas, useLoader, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, useFBX, Center, Html, useProgress } from '@react-three/drei';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
@@ -6,6 +6,39 @@ import { Maximize2, Minimize2, RotateCw, Shield, Sliders, Sun, Video } from 'luc
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://model-send-to-client.onrender.com';
 
+// Enable Draco Decompression for GLTF/GLB models to support compressed files
+useGLTF.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+
+interface ErrorBoundaryProps {
+  fallback: React.ReactNode;
+  children: React.ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("3D Model Viewer Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
 
 interface ModelViewerProps {
   modelUrl: string;
@@ -155,27 +188,37 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
     >
       {/* 3D Canvas */}
       <div className="flex-1 w-full bg-radial from-slate-900 via-slate-950 to-black relative">
-        <Canvas camera={{ position: [0, 0, 5], fov: 45 }} gl={{ preserveDrawingBuffer: true }}>
-          <ambientLight intensity={ambientIntensity} />
-          <directionalLight position={[10, 10, 5]} intensity={directionalIntensity} />
-          <directionalLight position={[-10, -10, -5]} intensity={0.5} />
-          <pointLight position={[0, 5, 0]} intensity={0.8} />
+        <ErrorBoundary fallback={
+          <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-slate-400 bg-slate-950/80 backdrop-blur-sm z-30">
+            <Shield className="w-12 h-12 text-red-500/80 mb-4 animate-pulse" />
+            <h4 className="text-sm font-bold text-white mb-2">3D Renderer Error</h4>
+            <p className="text-xs max-w-md">
+              Unable to load or display the 3D model. The file format might be unsupported, corrupted, or WebGL is disabled/failed on your device.
+            </p>
+          </div>
+        }>
+          <Canvas camera={{ position: [0, 0, 5], fov: 45 }} gl={{ preserveDrawingBuffer: true }}>
+            <ambientLight intensity={ambientIntensity} />
+            <directionalLight position={[10, 10, 5]} intensity={directionalIntensity} />
+            <directionalLight position={[-10, -10, -5]} intensity={0.5} />
+            <pointLight position={[0, 5, 0]} intensity={0.8} />
 
-          <Suspense fallback={<LoadingProgress />}>
-            <Center>
-              <ModelRenderer url={getFullUrl(modelUrl)} wireframe={wireframe} />
-            </Center>
-          </Suspense>
+            <Suspense fallback={<LoadingProgress />}>
+              <Center>
+                <ModelRenderer url={getFullUrl(modelUrl)} wireframe={wireframe} />
+              </Center>
+            </Suspense>
 
-          <OrbitControls 
-            enableDamping 
-            dampingFactor={0.05}
-            autoRotate={autoRotate}
-            autoRotateSpeed={2.0}
-            makeDefault
-          />
-          <CameraController resetTrigger={resetTrigger} />
-        </Canvas>
+            <OrbitControls 
+              enableDamping 
+              dampingFactor={0.05}
+              autoRotate={autoRotate}
+              autoRotateSpeed={2.0}
+              makeDefault
+            />
+            <CameraController resetTrigger={resetTrigger} />
+          </Canvas>
+        </ErrorBoundary>
 
         {/* Watermark Overlay (Security & Branding) */}
         <div className="absolute top-6 left-6 pointer-events-none select-none flex flex-col gap-1.5 opacity-60">
