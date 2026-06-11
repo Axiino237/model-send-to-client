@@ -92,18 +92,23 @@ export class StorageService {
   }
 
   async uploadFile(file: Express.Multer.File, key: string): Promise<string> {
-    const fileData = file.buffer || (file.path ? fs.readFileSync(file.path) : null);
-    if (!fileData) {
-      throw new Error('No file data available (both buffer and path are missing)');
-    }
-
     // ✅ Uploadthing (new uploads go here)
     if (this.utapi) {
-      // Convert Buffer to File object (Node 20+ has File globally)
-      const blob = new Blob([new Uint8Array(fileData)], { type: file.mimetype });
-      const utFile = new File([blob], file.originalname || path.basename(key), {
-        type: file.mimetype,
-      });
+      let utFile: File;
+      if (file.path) {
+        // Use openAsBlob to stream the file from disk (saves RAM)
+        const blob = await (fs as any).openAsBlob(file.path, { type: file.mimetype });
+        utFile = new File([blob], file.originalname || path.basename(key), {
+          type: file.mimetype,
+        });
+      } else if (file.buffer) {
+        const blob = new Blob([new Uint8Array(file.buffer)], { type: file.mimetype });
+        utFile = new File([blob], file.originalname || path.basename(key), {
+          type: file.mimetype,
+        });
+      } else {
+        throw new Error('No file data available (both buffer and path are missing)');
+      }
 
       const response = await this.utapi.uploadFiles([utFile]);
       const result = response[0];
@@ -121,12 +126,17 @@ export class StorageService {
       return `uploadthing://${fileKey}::${fileUrl}`;
     }
 
+    const fileData = file.buffer || (file.path ? fs.readFileSync(file.path) : null);
+    if (!fileData && !file.path) {
+      throw new Error('No file data available (both buffer and path are missing)');
+    }
+
     // Cloudflare R2 (legacy)
     if (this.r2Client && this.r2BucketName) {
       const command = new PutObjectCommand({
         Bucket: this.r2BucketName,
         Key: key,
-        Body: fileData,
+        Body: file.path ? fs.createReadStream(file.path) : fileData!,
         ContentType: file.mimetype,
       });
       await this.r2Client.send(command);
@@ -138,7 +148,7 @@ export class StorageService {
       const command = new PutObjectCommand({
         Bucket: this.bucketName,
         Key: key,
-        Body: fileData,
+        Body: file.path ? fs.createReadStream(file.path) : fileData!,
         ContentType: file.mimetype,
       });
       await this.s3Client.send(command);
@@ -147,9 +157,10 @@ export class StorageService {
 
     // Supabase Storage (legacy)
     if (this.supabaseClient && this.supabaseBucket) {
+      const body = file.path ? await (fs as any).openAsBlob(file.path, { type: file.mimetype }) : fileData!;
       const { error } = await this.supabaseClient.storage
         .from(this.supabaseBucket)
-        .upload(key, fileData, {
+        .upload(key, body, {
           contentType: file.mimetype,
           upsert: true,
         });
@@ -170,7 +181,11 @@ export class StorageService {
     if (!fs.existsSync(dirPath)) {
       fs.mkdirSync(dirPath, { recursive: true });
     }
-    await fs.promises.writeFile(filePath, fileData);
+    if (file.path) {
+      await fs.promises.copyFile(file.path, filePath);
+    } else {
+      await fs.promises.writeFile(filePath, fileData!);
+    }
     return `local://${key}`;
   }
 

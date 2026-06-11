@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useShareStore } from '../store/shareStore';
 import ModelViewer from '../components/ModelViewer';
@@ -15,6 +15,7 @@ const autoUnlockedTokens = new Set<string>();
 
 export default function ShareView() {
   const { token } = useParams<{ token: string }>();
+  const imgRef = useRef<HTMLImageElement>(null);
   const {
     activeShare, unlockedFileUrl, unlockedDescription, unlockedPhotos, unlockedAttachments,
     unlockedModelFiles, unlockedVideos, loading, error,
@@ -103,7 +104,9 @@ export default function ShareView() {
   };
 
   useEffect(() => {
-    setImageLoading(true);
+    if (imgRef.current && imgRef.current.complete) {
+      setImageLoading(false);
+    }
   }, [activePhotoIndex, unlockedPhotos]);
 
   useEffect(() => {
@@ -282,10 +285,12 @@ export default function ShareView() {
     const currentPhoto = unlockedPhotos[activePhotoIndex];
 
     const nextPhoto = () => {
+      setImageLoading(true);
       setActivePhotoIndex((prev) => (prev + 1) % unlockedPhotos.length);
     };
 
     const prevPhoto = () => {
+      setImageLoading(true);
       setActivePhotoIndex((prev) => (prev - 1 + unlockedPhotos.length) % unlockedPhotos.length);
     };
 
@@ -293,6 +298,7 @@ export default function ShareView() {
       <div className="flex-1 flex flex-col gap-4 justify-between bg-black/40 rounded-2xl border border-white/5 p-4 overflow-hidden relative">
         <div className="flex-1 flex items-center justify-center relative rounded-xl overflow-hidden min-h-[450px]">
           <img
+            ref={imgRef}
             src={getFullUrl(currentPhoto.downloadUrl)}
             alt={currentPhoto.name}
             onLoad={() => setImageLoading(false)}
@@ -335,7 +341,10 @@ export default function ShareView() {
             {unlockedPhotos.map((photo, index) => (
               <button
                 key={photo.id}
-                onClick={() => setActivePhotoIndex(index)}
+                onClick={() => {
+                  setImageLoading(true);
+                  setActivePhotoIndex(index);
+                }}
                 className={`relative flex-shrink-0 w-16 h-12 rounded-lg border-2 overflow-hidden cursor-pointer transition-all ${index === activePhotoIndex ? 'border-blue-500 scale-105' : 'border-white/10 opacity-60 hover:opacity-100'
                   }`}
               >
