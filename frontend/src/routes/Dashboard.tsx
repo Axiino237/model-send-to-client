@@ -131,10 +131,6 @@ export default function Dashboard() {
   // Upload handler
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (uploadFiles.length === 0 || !uploadDescription.trim()) {
-      setUploadError('At least one 3D Model File and Showcase Description are both required.');
-      return;
-    }
     setUploadProgress(true);
     setUploadError('');
 
@@ -754,11 +750,10 @@ export default function Dashboard() {
                 {/* Showcase Name */}
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Showcase Name (Required)
+                    Showcase Name (Optional)
                   </label>
                   <input
                     type="text"
-                    required
                     value={uploadName}
                     onChange={(e) => setUploadName(e.target.value)}
                     placeholder="e.g. Exhibition Stall Design"
@@ -769,7 +764,7 @@ export default function Dashboard() {
                 {/* 3D Model Files */}
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    3D Model Files (.glb, .gltf - At least one required)
+                    3D Model Files (.glb, .gltf - Optional)
                   </label>
                   <div className="relative border border-dashed border-white/10 rounded-xl p-3 hover:border-blue-500/40 transition-colors bg-white/2">
                     <input
@@ -1138,7 +1133,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={handleUploadSubmit}
-                disabled={uploadProgress || !uploadName || uploadFiles.length === 0 || !uploadDescription.trim()}
+                disabled={uploadProgress}
                 className="flex-1 flex items-center justify-center py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/10 cursor-pointer transition-all"
               >
                 {uploadProgress ? (

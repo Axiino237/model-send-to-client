@@ -27,9 +27,6 @@ export class ModelsService {
     const attachments = files?.attachments || [];
     const videos = files?.videos || [];
 
-    if (modelFiles.length === 0 && photos.length === 0 && !description && videos.length === 0) {
-      throw new BadRequestException('At least a 3D model, photos, videos, or description is required');
-    }
 
     const allowedModelExtensions = ['.glb', '.gltf', '.fbx', '.obj'];
     const allowedVideoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];

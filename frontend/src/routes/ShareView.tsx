@@ -33,6 +33,15 @@ export default function ShareView() {
   const [isWindowBlurred, setIsWindowBlurred] = useState(false);
   const [activeModelIndex, setActiveModelIndex] = useState(0);
 
+  const isUnlocked = !!(
+    unlockedFileUrl ||
+    (unlockedModelFiles && unlockedModelFiles.length > 0) ||
+    (unlockedPhotos && unlockedPhotos.length > 0) ||
+    unlockedDescription ||
+    (unlockedAttachments && unlockedAttachments.length > 0) ||
+    (unlockedVideos && unlockedVideos.length > 0)
+  );
+
   useEffect(() => {
     const handleBlur = () => {
       setIsWindowBlurred(true);
@@ -106,11 +115,11 @@ export default function ShareView() {
   }, [token, fetchShareMeta, clear]);
 
   useEffect(() => {
-    if (activeShare && (unlockedFileUrl || unlockedPhotos.length > 0) && !hasLoggedView) {
+    if (activeShare && isUnlocked && !hasLoggedView) {
       logViewAnalytics(activeShare.id);
       setHasLoggedView(true);
     }
-  }, [activeShare, unlockedFileUrl, unlockedPhotos, hasLoggedView, logViewAnalytics]);
+  }, [activeShare, isUnlocked, hasLoggedView, logViewAnalytics]);
 
   useEffect(() => {
     if (activeShare && !unlockedFileUrl && unlockedPhotos.length > 0) {
@@ -222,8 +231,6 @@ export default function ShareView() {
   }
 
   if (!activeShare) return null;
-
-  const isUnlocked = !!(unlockedFileUrl || unlockedPhotos.length > 0 || unlockedDescription || unlockedAttachments.length > 0);
 
   if (activeShare.hasPassword && !isUnlocked) {
     return (
@@ -416,82 +423,79 @@ export default function ShareView() {
         {/* Stacked Content Sections (3D Model first, then Photos, Description, Attachments) */}
         <div className="max-w-4xl w-full mx-auto flex flex-col gap-6">
           {/* Section 1: 3D Model Viewer */}
-          <div className="flex flex-col gap-4 bg-slate-900/40 rounded-3xl border border-white/5 p-6 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:border-white/10 relative group">
-            {/* Glowing effect inside container */}
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-50"></div>
+          {((unlockedModelFiles && unlockedModelFiles.length > 0) || unlockedFileUrl) && (
+            <div className="flex flex-col gap-4 bg-slate-900/40 rounded-3xl border border-white/5 p-6 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:border-white/10 relative group">
+              {/* Glowing effect inside container */}
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-50"></div>
 
-            <div className="flex items-center justify-between gap-2 mb-2 pb-3 border-b border-white/5">
-              <div className="flex items-center gap-2">
-                <Box className="w-4.5 h-4.5 text-blue-400" />
-                <h3 className="text-xs font-bold text-white uppercase tracking-wider">3D Interactive Viewer</h3>
+              <div className="flex items-center justify-between gap-2 mb-2 pb-3 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <Box className="w-4.5 h-4.5 text-blue-400" />
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">3D Interactive Viewer</h3>
+                </div>
+                <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest animate-pulse">
+                  Interactive
+                </span>
               </div>
-              <span className="text-[10px] bg-blue-500/10 text-blue-400 border border-blue-500/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest animate-pulse">
-                Interactive
-              </span>
+
+              {/* Model selector buttons if multiple models exist */}
+              {unlockedModelFiles && unlockedModelFiles.length > 1 && (
+                <div className="flex items-center gap-2 mb-2 bg-white/2 border border-white/5 p-2 rounded-2xl overflow-x-auto scrollbar-none">
+                  {unlockedModelFiles.map((file, idx) => (
+                    <button
+                      key={file.id}
+                      onClick={() => setActiveModelIndex(idx)}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200 shrink-0 ${
+                        idx === activeModelIndex
+                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                          : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <Box className="w-3.5 h-3.5" />
+                      <span>{file.name}</span>
+                      <span className="text-[10px] opacity-75 font-mono">({formatBytes(file.size)})</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {unlockedModelFiles && unlockedModelFiles.length > 0 ? (
+                <div className="w-full min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
+                  {/* Floating guide */}
+                  <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none flex items-center gap-1.5 shadow-xl">
+                    <span>Orbit: Drag</span>
+                    <span className="w-1 h-1 bg-white/20 rounded-full"></span>
+                    <span>Pan: Right Drag</span>
+                    <span className="w-1 h-1 bg-white/20 rounded-full"></span>
+                    <span>Zoom: Scroll</span>
+                  </div>
+                  <ModelViewer
+                    modelUrl={getFullUrl(unlockedModelFiles[activeModelIndex]?.downloadUrl)}
+                    modelName={unlockedModelFiles[activeModelIndex]?.name || activeShare.model.name}
+                    companyName={activeShare.model.user.name}
+                    clientName={clientName || undefined}
+                  />
+                </div>
+              ) : unlockedFileUrl ? (
+                <div className="w-full min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
+                  {/* Floating guide */}
+                  <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none flex items-center gap-1.5 shadow-xl">
+                    <span>Orbit: Drag</span>
+                    <span className="w-1 h-1 bg-white/20 rounded-full"></span>
+                    <span>Pan: Right Drag</span>
+                    <span className="w-1 h-1 bg-white/20 rounded-full"></span>
+                    <span>Zoom: Scroll</span>
+                  </div>
+                  <ModelViewer
+                    modelUrl={getFullUrl(unlockedFileUrl)}
+                    modelName={activeShare.model.name}
+                    companyName={activeShare.model.user.name}
+                    clientName={clientName || undefined}
+                  />
+                </div>
+              ) : null}
             </div>
-
-            {/* Model selector buttons if multiple models exist */}
-            {unlockedModelFiles && unlockedModelFiles.length > 1 && (
-              <div className="flex items-center gap-2 mb-2 bg-white/2 border border-white/5 p-2 rounded-2xl overflow-x-auto scrollbar-none">
-                {unlockedModelFiles.map((file, idx) => (
-                  <button
-                    key={file.id}
-                    onClick={() => setActiveModelIndex(idx)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200 shrink-0 ${
-                      idx === activeModelIndex
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <Box className="w-3.5 h-3.5" />
-                    <span>{file.name}</span>
-                    <span className="text-[10px] opacity-75 font-mono">({formatBytes(file.size)})</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {unlockedModelFiles && unlockedModelFiles.length > 0 ? (
-              <div className="w-full min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
-                {/* Floating guide */}
-                <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none flex items-center gap-1.5 shadow-xl">
-                  <span>Orbit: Drag</span>
-                  <span className="w-1 h-1 bg-white/20 rounded-full"></span>
-                  <span>Pan: Right Drag</span>
-                  <span className="w-1 h-1 bg-white/20 rounded-full"></span>
-                  <span>Zoom: Scroll</span>
-                </div>
-                <ModelViewer
-                  modelUrl={getFullUrl(unlockedModelFiles[activeModelIndex]?.downloadUrl)}
-                  modelName={unlockedModelFiles[activeModelIndex]?.name || activeShare.model.name}
-                  companyName={activeShare.model.user.name}
-                  clientName={clientName || undefined}
-                />
-              </div>
-            ) : unlockedFileUrl ? (
-              <div className="w-full min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
-                {/* Floating guide */}
-                <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none flex items-center gap-1.5 shadow-xl">
-                  <span>Orbit: Drag</span>
-                  <span className="w-1 h-1 bg-white/20 rounded-full"></span>
-                  <span>Pan: Right Drag</span>
-                  <span className="w-1 h-1 bg-white/20 rounded-full"></span>
-                  <span>Zoom: Scroll</span>
-                </div>
-                <ModelViewer
-                  modelUrl={getFullUrl(unlockedFileUrl)}
-                  modelName={activeShare.model.name}
-                  companyName={activeShare.model.user.name}
-                  clientName={clientName || undefined}
-                />
-              </div>
-            ) : (
-              <div className="py-24 flex flex-col items-center justify-center text-slate-500 gap-4 border border-dashed border-white/5 rounded-2xl bg-white/1 shadow-inner">
-                <Box className="w-14 h-14 text-slate-600 animate-pulse" />
-                <p className="text-sm font-semibold tracking-wide">3D Model File could not be resolved.</p>
-              </div>
-            )}
-          </div>
+          )}
 
           {/* Section: Project Videos & Demos */}
           {unlockedVideos && unlockedVideos.length > 0 && (
