@@ -29,6 +29,59 @@ export default function ShareView() {
   const [_activeTab, setActiveTab] = useState<'3d' | 'photos'>('3d');
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [imageLoading, setImageLoading] = useState(true);
+  const [isWindowBlurred, setIsWindowBlurred] = useState(false);
+
+  useEffect(() => {
+    const handleBlur = () => {
+      setIsWindowBlurred(true);
+    };
+    const handleFocus = () => {
+      setIsWindowBlurred(false);
+    };
+
+    window.addEventListener('blur', handleBlur);
+    window.addEventListener('focus', handleFocus);
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Block Ctrl+P (Print)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+      }
+      // Block Ctrl+S (Save)
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+      }
+      // Block F12 (Developer Tools)
+      if (e.key === 'F12') {
+        e.preventDefault();
+      }
+      // Block Ctrl+Shift+I / Ctrl+Shift+J (DevTools)
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.key === 'J' || e.key === 'j')) {
+        e.preventDefault();
+      }
+      // PrintScreen key detection
+      if (e.key === 'PrintScreen') {
+        setIsWindowBlurred(true);
+        navigator.clipboard.writeText('Screenshots are disabled on this page.').catch(() => {});
+      }
+    };
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'PrintScreen') {
+        navigator.clipboard.writeText('Screenshots are disabled on this page.').catch(() => {});
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
+
+    return () => {
+      window.removeEventListener('blur', handleBlur);
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
+    };
+  }, []);
 
   const getFullUrl = (url: string | null | undefined) => {
     if (!url) return '';
@@ -291,7 +344,23 @@ export default function ShareView() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col p-4 md:p-8 relative overflow-x-hidden">
+    <div 
+      className="min-h-screen bg-slate-950 text-slate-100 flex flex-col p-4 md:p-8 relative overflow-x-hidden select-none"
+      onContextMenu={(e) => e.preventDefault()}
+    >
+      <style>{`
+        @media print {
+          body {
+            display: none !important;
+          }
+        }
+        .select-none {
+          user-select: none;
+          -webkit-user-select: none;
+          -moz-user-select: none;
+          -ms-user-select: none;
+        }
+      `}</style>
       {/* Premium ambient glows */}
       <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] rounded-full bg-blue-600/10 blur-[130px] pointer-events-none animate-pulse"></div>
       <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none animate-pulse"></div>
@@ -487,6 +556,21 @@ export default function ShareView() {
           </span>
         </a>
       </div>
+
+      {isWindowBlurred && (
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[9999] flex flex-col items-center justify-center text-center p-6 select-none pointer-events-auto">
+          <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-6 animate-pulse">
+            <Lock className="w-8 h-8" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Screenshot Protected</h2>
+          <p className="text-sm text-slate-400 max-w-sm">
+            This showcase is protected under security policies. Content is hidden when the viewer loses focus.
+          </p>
+          <div className="mt-8 text-[10px] text-slate-600 font-mono tracking-widest uppercase">
+            Insight3D Security Shield
+          </div>
+        </div>
+      )}
     </div>
   );
 }
