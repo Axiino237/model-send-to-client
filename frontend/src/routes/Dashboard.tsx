@@ -36,7 +36,7 @@ export default function Dashboard() {
   const { user, logout, isAuthenticated, initialize } = useAuthStore();
   const {
     models, stats, dailyViews, devices, loading, error,
-    fetchModels, fetchDashboardData, uploadModel, renameModel, deleteModel
+    fetchModels, fetchDashboardData, uploadModel, renameModel, deleteModel, updateModel
   } = useModelStore();
   const { createShareLink, deleteShareLink, resetShareViews } = useShareStore();
 
@@ -53,6 +53,13 @@ export default function Dashboard() {
   const [uploadVideos, setUploadVideos] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(false);
   const [uploadError, setUploadError] = useState('');
+
+  // Edit Showcase modal states
+  const [editingModel, setEditingModel] = useState<Model | null>(null);
+  const [deleteModelFileIds, setDeleteModelFileIds] = useState<string[]>([]);
+  const [deletePhotoIds, setDeletePhotoIds] = useState<string[]>([]);
+  const [deleteAttachmentIds, setDeleteAttachmentIds] = useState<string[]>([]);
+  const [deleteVideoIds, setDeleteVideoIds] = useState<string[]>([]);
 
   // Share Modal State
   const [isShareOpen, setIsShareOpen] = useState(false);
@@ -104,10 +111,37 @@ export default function Dashboard() {
     setEditorCharCount(0);
     setEditorFont('sans');
     setEditorColor('#e2e8f0');
+    setEditingModel(null);
+    setDeleteModelFileIds([]);
+    setDeletePhotoIds([]);
+    setDeleteAttachmentIds([]);
+    setDeleteVideoIds([]);
     if (editorRef.current) {
       editorRef.current.innerHTML = '';
     }
   };
+
+  const openEditModal = (model: Model) => {
+    setEditingModel(model);
+    setUploadName(model.name);
+    setUploadDescription(model.description || '');
+    setUploadFiles([]);
+    setUploadPhotos([]);
+    setUploadAttachments([]);
+    setUploadVideos([]);
+    setDeleteModelFileIds([]);
+    setDeletePhotoIds([]);
+    setDeleteAttachmentIds([]);
+    setDeleteVideoIds([]);
+    setIsUploadOpen(true);
+  };
+
+  useEffect(() => {
+    if (isUploadOpen && editorRef.current) {
+      editorRef.current.innerHTML = editingModel ? (editingModel.description || '') : '';
+      handleEditorInput();
+    }
+  }, [isUploadOpen, editingModel]);
 
   useEffect(() => {
     initialize();
@@ -135,14 +169,30 @@ export default function Dashboard() {
     setUploadError('');
 
     try {
-      await uploadModel(
-        uploadFiles,
-        uploadName,
-        uploadDescription,
-        uploadPhotos,
-        uploadAttachments,
-        uploadVideos,
-      );
+      if (editingModel) {
+        await updateModel(
+          editingModel.id,
+          uploadName,
+          uploadDescription,
+          uploadFiles,
+          uploadPhotos,
+          uploadAttachments,
+          uploadVideos,
+          deleteModelFileIds,
+          deletePhotoIds,
+          deleteAttachmentIds,
+          deleteVideoIds,
+        );
+      } else {
+        await uploadModel(
+          uploadFiles,
+          uploadName,
+          uploadDescription,
+          uploadPhotos,
+          uploadAttachments,
+          uploadVideos,
+        );
+      }
       resetUploadForm();
     } catch (err: any) {
       setUploadError(err.message || 'File upload failed');
@@ -658,11 +708,24 @@ export default function Dashboard() {
 
                         {/* Size */}
                         <td className="py-4 px-6 text-xs text-slate-300 font-medium">
-                          {model.modelFiles && model.modelFiles.length > 0 
-                            ? formatBytes(model.modelFiles.reduce((acc, f) => acc + f.size, 0))
-                            : model.size 
-                              ? formatBytes(model.size) 
-                              : <span className="text-slate-600 italic">No 3D file</span>}
+                          {(() => {
+                            let total = 0;
+                            if (model.modelFiles && model.modelFiles.length > 0) {
+                              total += model.modelFiles.reduce((acc, f) => acc + f.size, 0);
+                            } else if (model.size) {
+                              total += model.size;
+                            }
+                            if (model.photos && model.photos.length > 0) {
+                              total += model.photos.reduce((acc, p) => acc + p.size, 0);
+                            }
+                            if (model.videos && model.videos.length > 0) {
+                              total += model.videos.reduce((acc, v) => acc + v.size, 0);
+                            }
+                            if (model.attachments && model.attachments.length > 0) {
+                              total += model.attachments.reduce((acc, a) => acc + a.size, 0);
+                            }
+                            return total > 0 ? formatBytes(total) : <span className="text-slate-600 italic">No files</span>;
+                          })()}
                         </td>
 
                         {/* Date */}
@@ -697,6 +760,13 @@ export default function Dashboard() {
                         {/* Actions */}
                         <td className="py-4 px-6 text-right">
                           <div className="flex items-center justify-end gap-2">
+                            <button
+                              onClick={() => openEditModal(model)}
+                              className="flex items-center gap-1.5 py-1.5 px-3 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 hover:text-blue-300 border border-blue-500/20 rounded-lg text-xs font-semibold cursor-pointer transition-all"
+                              title="Edit showcase"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" /> Edit
+                            </button>
                             <button
                               onClick={() => {
                                 setSelectedModel(model);
@@ -736,8 +806,10 @@ export default function Dashboard() {
           <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-white/5 bg-slate-900/40 p-6 flex flex-col justify-between shrink-0 overflow-y-auto">
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-black text-white">Create Showcase</h3>
-                <p className="text-xs text-slate-400 mt-1">Provide project details and upload assets</p>
+                <h3 className="text-lg font-black text-white">{editingModel ? 'Edit Showcase' : 'Create Showcase'}</h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  {editingModel ? 'Update project details and manage assets' : 'Provide project details and upload assets'}
+                </p>
               </div>
 
               {uploadError && (
@@ -828,6 +900,30 @@ export default function Dashboard() {
                           </button>
                         </span>
                       ))}
+                    </div>
+                  )}
+                  {editingModel && editingModel.modelFiles && editingModel.modelFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {editingModel.modelFiles
+                        .filter((file) => !deleteModelFileIds.includes(file.id))
+                        .map((file) => (
+                          <span
+                            key={file.id}
+                            className="flex items-center gap-1 text-[9px] bg-blue-950/40 border border-blue-500/30 text-blue-300 px-2 py-0.5 rounded-full"
+                          >
+                            <Box className="w-3 h-3 text-blue-400" />
+                            {file.name.length > 16 ? file.name.substring(0, 14) + '…' : file.name}
+                            <span className="text-[8px] text-slate-500">({formatBytes(file.size)})</span>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteModelFileIds((prev) => [...prev, file.id])}
+                              className="text-slate-500 hover:text-red-400 cursor-pointer ml-0.5 leading-none"
+                              title="Delete existing file"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
                     </div>
                   )}
                 </div>
@@ -966,6 +1062,33 @@ export default function Dashboard() {
                       ))}
                     </div>
                   )}
+                  {editingModel && editingModel.photos && editingModel.photos.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {editingModel.photos
+                        .filter((photo) => !deletePhotoIds.includes(photo.id))
+                        .map((photo) => (
+                          <div key={photo.id} className="relative group w-16 h-16 rounded-lg overflow-hidden border border-white/10 bg-slate-800 shrink-0">
+                            <img
+                              src={photo.downloadUrl}
+                              alt={photo.name}
+                              className="w-full h-full object-cover"
+                            />
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeletePhotoIds((prev) => [...prev, photo.id]);
+                              }}
+                              className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer shadow-lg z-10"
+                              title="Delete photo"
+                            >
+                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                            <span className="absolute bottom-0 left-0 right-0 text-[7px] text-white bg-black/60 px-1 py-0.5 truncate">{photo.name}</span>
+                          </div>
+                        ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Attachments */}
@@ -1049,6 +1172,29 @@ export default function Dashboard() {
                       ))}
                     </div>
                   )}
+                  {editingModel && editingModel.attachments && editingModel.attachments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {editingModel.attachments
+                        .filter((file) => !deleteAttachmentIds.includes(file.id))
+                        .map((file) => (
+                          <span
+                            key={file.id}
+                            className="flex items-center gap-1 text-[9px] bg-white/5 border border-white/8 text-slate-300 px-2 py-0.5 rounded-full"
+                          >
+                            <span className="text-purple-400">📄</span>
+                            {file.name.length > 16 ? file.name.substring(0, 14) + '…' : file.name}
+                            <span className="text-[8px] text-slate-500">({formatBytes(file.size)})</span>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteAttachmentIds((prev) => [...prev, file.id])}
+                              className="text-slate-500 hover:text-red-400 cursor-pointer ml-0.5 leading-none"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Video Files */}
@@ -1117,6 +1263,29 @@ export default function Dashboard() {
                       ))}
                     </div>
                   )}
+                  {editingModel && editingModel.videos && editingModel.videos.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {editingModel.videos
+                        .filter((file) => !deleteVideoIds.includes(file.id))
+                        .map((file) => (
+                          <span
+                            key={file.id}
+                            className="flex items-center gap-1 text-[9px] bg-white/5 border border-white/8 text-slate-300 px-2 py-0.5 rounded-full"
+                          >
+                            <span className="text-emerald-400">📹</span>
+                            {file.name.length > 16 ? file.name.substring(0, 14) + '…' : file.name}
+                            <span className="text-[8px] text-slate-500">({formatBytes(file.size)})</span>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteVideoIds((prev) => [...prev, file.id])}
+                              className="text-slate-500 hover:text-red-400 cursor-pointer ml-0.5 leading-none"
+                            >
+                              ×
+                            </button>
+                          </span>
+                        ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -1138,9 +1307,9 @@ export default function Dashboard() {
               >
                 {uploadProgress ? (
                   <span className="flex items-center gap-1.5">
-                    <RefreshCw className="w-3 h-3 animate-spin" /> Creating...
+                    <RefreshCw className="w-3 h-3 animate-spin" /> {editingModel ? 'Saving...' : 'Creating...'}
                   </span>
-                ) : 'Create Showcase'}
+                ) : editingModel ? 'Save Changes' : 'Create Showcase'}
               </button>
             </div>
           </div>

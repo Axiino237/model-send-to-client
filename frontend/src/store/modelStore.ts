@@ -72,6 +72,19 @@ interface ModelStore {
   ) => Promise<void>;
   renameModel: (id: string, name: string) => Promise<void>;
   deleteModel: (id: string) => Promise<void>;
+  updateModel: (
+    id: string,
+    name: string,
+    description: string,
+    newFiles: File[],
+    newPhotos: File[],
+    newAttachments: File[],
+    newVideos: File[],
+    deleteModelFileIds: string[],
+    deletePhotoIds: string[],
+    deleteAttachmentIds: string[],
+    deleteVideoIds: string[]
+  ) => Promise<void>;
 }
 
 export const useModelStore = create<ModelStore>((set, get) => ({
@@ -155,6 +168,56 @@ export const useModelStore = create<ModelStore>((set, get) => ({
       await get().fetchDashboardData();
     } catch (err: any) {
       set({ error: err.message || 'Failed to upload model', loading: false });
+      throw err;
+    }
+  },
+
+  updateModel: async (
+    id: string,
+    name: string,
+    description: string,
+    newFiles: File[],
+    newPhotos: File[],
+    newAttachments: File[],
+    newVideos: File[],
+    deleteModelFileIds: string[],
+    deletePhotoIds: string[],
+    deleteAttachmentIds: string[],
+    deleteVideoIds: string[]
+  ) => {
+    set({ loading: true, error: null });
+    try {
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('description', description);
+      
+      if (newFiles && newFiles.length > 0) {
+        newFiles.forEach((file) => formData.append('file', file));
+      }
+      if (newPhotos && newPhotos.length > 0) {
+        newPhotos.forEach((photo) => formData.append('photos', photo));
+      }
+      if (newAttachments && newAttachments.length > 0) {
+        newAttachments.forEach((attachment) => formData.append('attachments', attachment));
+      }
+      if (newVideos && newVideos.length > 0) {
+        newVideos.forEach((video) => formData.append('videos', video));
+      }
+
+      formData.append('deleteModelFileIds', JSON.stringify(deleteModelFileIds));
+      formData.append('deletePhotoIds', JSON.stringify(deletePhotoIds));
+      formData.append('deleteAttachmentIds', JSON.stringify(deleteAttachmentIds));
+      formData.append('deleteVideoIds', JSON.stringify(deleteVideoIds));
+
+      await apiFetch(`/models/${id}/update`, {
+        method: 'PATCH',
+        body: formData,
+      });
+
+      await get().fetchModels();
+      await get().fetchDashboardData();
+    } catch (err: any) {
+      set({ error: err.message || 'Failed to update model', loading: false });
       throw err;
     }
   },

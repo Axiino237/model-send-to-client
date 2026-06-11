@@ -88,6 +88,68 @@ export class ModelsController {
     return this.modelsService.renameModel(req.user, id, name);
   }
 
+  @Patch(':id/update')
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'file', maxCount: 10 },
+        { name: 'photos', maxCount: 10 },
+        { name: 'attachments', maxCount: 10 },
+        { name: 'videos', maxCount: 10 },
+      ],
+      {
+        storage: diskStorage({
+          destination: (req, file, cb) => {
+            const tempDir = path.join(process.cwd(), 'uploads', 'temp');
+            if (!fs.existsSync(tempDir)) {
+              fs.mkdirSync(tempDir, { recursive: true });
+            }
+            cb(null, tempDir);
+          },
+          filename: (req, file, cb) => {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+            cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+          },
+        }),
+      },
+    ),
+  )
+  async updateModel(
+    @Request() req,
+    @Param('id') id: string,
+    @UploadedFiles()
+    files: {
+      file?: Express.Multer.File[];
+      photos?: Express.Multer.File[];
+      attachments?: Express.Multer.File[];
+      videos?: Express.Multer.File[];
+    },
+    @Body('name') name?: string,
+    @Body('description') description?: string,
+    @Body('deleteModelFileIds') deleteModelFileIdsJson?: string,
+    @Body('deletePhotoIds') deletePhotoIdsJson?: string,
+    @Body('deleteAttachmentIds') deleteAttachmentIdsJson?: string,
+    @Body('deleteVideoIds') deleteVideoIdsJson?: string,
+  ) {
+    const deleteModelFileIds = deleteModelFileIdsJson ? JSON.parse(deleteModelFileIdsJson) : [];
+    const deletePhotoIds = deletePhotoIdsJson ? JSON.parse(deletePhotoIdsJson) : [];
+    const deleteAttachmentIds = deleteAttachmentIdsJson ? JSON.parse(deleteAttachmentIdsJson) : [];
+    const deleteVideoIds = deleteVideoIdsJson ? JSON.parse(deleteVideoIdsJson) : [];
+
+    return this.modelsService.updateModel(
+      req.user,
+      id,
+      files,
+      name,
+      description,
+      deleteModelFileIds,
+      deletePhotoIds,
+      deleteAttachmentIds,
+      deleteVideoIds,
+    );
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   async deleteModel(@Request() req, @Param('id') id: string) {

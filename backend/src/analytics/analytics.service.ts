@@ -47,13 +47,40 @@ export class AnalyticsService {
       where: filter,
     });
 
-    const storageResult = await this.prisma.model.aggregate({
-      where: filter,
+    const modelFilesSum = await this.prisma.modelFile.aggregate({
+      where: isCreator ? { model: { userId: user.id } } : {},
+      _sum: { size: true },
+    });
+    const photosSum = await this.prisma.photo.aggregate({
+      where: isCreator ? { model: { userId: user.id } } : {},
+      _sum: { size: true },
+    });
+    const videosSum = await this.prisma.video.aggregate({
+      where: isCreator ? { model: { userId: user.id } } : {},
+      _sum: { size: true },
+    });
+    const attachmentsSum = await this.prisma.attachment.aggregate({
+      where: isCreator ? { model: { userId: user.id } } : {},
+      _sum: { size: true },
+    });
+    const legacyModelsSum = await this.prisma.model.aggregate({
+      where: {
+        ...filter,
+        modelFiles: {
+          none: {},
+        },
+      },
       _sum: {
         size: true,
       },
     });
-    const storageUsed = storageResult._sum.size || 0;
+
+    const storageUsed =
+      (modelFilesSum._sum.size || 0) +
+      (photosSum._sum.size || 0) +
+      (videosSum._sum.size || 0) +
+      (attachmentsSum._sum.size || 0) +
+      (legacyModelsSum._sum.size || 0);
 
     const totalShares = await this.prisma.share.count({
       where: isCreator ? { model: { userId: user.id } } : {},
