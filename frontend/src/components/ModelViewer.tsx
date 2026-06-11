@@ -74,6 +74,7 @@ function LoadingProgress() {
 // Inner Model Loader
 interface RendererProps {
   url: string;
+  originalUrl: string;
   wireframe: boolean;
 }
 
@@ -93,26 +94,26 @@ function applyMaterialProperties(obj: any, wireframe: boolean) {
   });
 }
 
-function GLBLoader({ url, wireframe }: RendererProps) {
+function GLBLoader({ url, wireframe }: { url: string; wireframe: boolean }) {
   const { scene } = useGLTF(url);
   applyMaterialProperties(scene, wireframe);
   return <primitive object={scene} />;
 }
 
-function FBXLoader({ url, wireframe }: RendererProps) {
+function FBXLoader({ url, wireframe }: { url: string; wireframe: boolean }) {
   const fbx = useFBX(url);
   applyMaterialProperties(fbx, wireframe);
   return <primitive object={fbx} scale={0.01} />;
 }
 
-function OBJModelLoader({ url, wireframe }: RendererProps) {
+function OBJModelLoader({ url, wireframe }: { url: string; wireframe: boolean }) {
   const obj = useLoader(OBJLoader, url);
   applyMaterialProperties(obj, wireframe);
   return <primitive object={obj} />;
 }
 
-function ModelRenderer({ url, wireframe }: RendererProps) {
-  const fileExt = url.split('.').pop()?.split('?')[0].toLowerCase() || '';
+function ModelRenderer({ url, originalUrl, wireframe }: RendererProps) {
+  const fileExt = originalUrl.split('.').pop()?.split('?')[0].toLowerCase() || '';
 
   if (fileExt === 'fbx') {
     return <FBXLoader url={url} wireframe={wireframe} />;
@@ -148,6 +149,13 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
   const [directionalIntensity, setDirectionalIntensity] = useState(1.0);
   const [showControls, setShowControls] = useState(false);
 
+  // Download states
+  const [downloadProgress, setDownloadProgress] = useState(0);
+  const [localUrl, setLocalUrl] = useState<string | null>(null);
+  const [downloadLoading, setDownloadLoading] = useState(true);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const [retryTrigger, setRetryTrigger] = useState(0);
+
   const containerRef = useRef<HTMLDivElement>(null);
 
   const toggleFullscreen = () => {
@@ -179,6 +187,133 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
     return url;
   };
 
+  // Handle Model File Downloading via XMLHttpRequest for Real Byte-by-Byte progress tracking
+  useEffect(() => {
+    let active = true;
+    let xhr: XMLHttpRequest | null = null;
+    let currentBlobUrl: string | null = null;
+
+    const downloadModel = () => {
+      setDownloadLoading(true);
+      setDownloadProgress(0);
+      setDownloadError(null);
+      setLocalUrl(null);
+
+      const url = getFullUrl(modelUrl);
+      
+      xhr = new XMLHttpRequest();
+      xhr.open('GET', url);
+      xhr.responseType = 'blob';
+
+      xhr.onprogress = (event) => {
+        if (!active) return;
+        if (event.lengthComputable && event.total > 0) {
+          const percent = (event.loaded / event.total) * 100;
+          setDownloadProgress(percent);
+        } else {
+          // Fallback if Content-Length header is missing from CDN: show downloaded MB
+          const loadedMB = event.loaded / (1024 * 1024);
+          setDownloadProgress(-loadedMB);
+        }
+      };
+
+      xhr.onload = () => {
+        if (!active) return;
+        if (xhr.status === 200) {
+          const blob = xhr.response;
+          currentBlobUrl = URL.createObjectURL(blob);
+          setLocalUrl(currentBlobUrl);
+          setDownloadLoading(false);
+        } else {
+          setDownloadError(`Failed to load 3D model (Server returned status ${xhr.status}).`);
+          setDownloadLoading(false);
+        }
+      };
+
+      xhr.onerror = () => {
+        if (!active) return;
+        setDownloadError('Network error occurred while downloading the 3D model. Please check your connection.');
+        setDownloadLoading(false);
+      };
+
+      xhr.send();
+    };
+
+    downloadModel();
+
+    return () => {
+      active = false;
+      if (xhr) {
+        xhr.abort();
+      }
+      if (currentBlobUrl) {
+        URL.revokeObjectURL(currentBlobUrl);
+      }
+    };
+  }, [modelUrl, retryTrigger]);
+
+  if (downloadLoading) {
+    const isMB = downloadProgress < 0;
+    return (
+      <div 
+        ref={containerRef}
+        className={`relative w-full rounded-2xl overflow-hidden glass-panel h-[500px] md:h-[600px] border border-white/5 shadow-2xl flex flex-col justify-center items-center bg-radial from-slate-900 via-slate-950 to-black p-6 ${
+          isFullscreen ? 'w-screen h-screen rounded-none border-none' : ''
+        }`}
+      >
+        <div className="flex flex-col items-center justify-center p-8 rounded-3xl glass-panel-heavy min-w-[280px] border border-white/10 shadow-2xl z-10">
+          <div className="w-16 h-16 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mb-5"></div>
+          <div className="text-sm font-bold text-white tracking-widest uppercase mb-1.5">
+            Downloading 3D Model
+          </div>
+          <div className="text-xs text-blue-400 font-mono font-bold">
+            {isMB 
+              ? `${Math.abs(downloadProgress).toFixed(1)} MB Loaded` 
+              : `${downloadProgress.toFixed(0)}%`}
+          </div>
+          {!isMB && (
+            <div className="w-full bg-slate-800 h-2 rounded-full mt-4 overflow-hidden border border-white/5 shadow-inner">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 h-full transition-all duration-300 ease-out" 
+                style={{ width: `${Math.max(0, Math.min(100, downloadProgress))}%` }}
+              ></div>
+            </div>
+          )}
+          <div className="text-[10px] text-slate-500 mt-4 text-center select-none font-medium">
+            File: {modelName}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (downloadError) {
+    return (
+      <div 
+        ref={containerRef}
+        className={`relative w-full rounded-2xl overflow-hidden glass-panel h-[500px] md:h-[600px] border border-white/5 shadow-2xl flex flex-col justify-center items-center bg-radial from-slate-900 via-slate-950 to-black p-6 ${
+          isFullscreen ? 'w-screen h-screen rounded-none border-none' : ''
+        }`}
+      >
+        <div className="flex flex-col items-center justify-center p-8 rounded-3xl glass-panel-heavy max-w-md border border-red-500/20 shadow-2xl text-center z-10">
+          <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 mb-5 animate-bounce">
+            <Shield className="w-7 h-7" />
+          </div>
+          <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-2">Download Failed</h4>
+          <p className="text-xs text-slate-400 leading-relaxed mb-6">
+            {downloadError}
+          </p>
+          <button
+            onClick={() => setRetryTrigger(prev => prev + 1)}
+            className="px-5 py-2.5 rounded-xl text-xs font-semibold text-white bg-blue-600 hover:bg-blue-500 active:scale-[0.98] transition-all cursor-pointer shadow-md hover:shadow-blue-500/20"
+          >
+            Retry Download
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       ref={containerRef} 
@@ -205,7 +340,7 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
 
             <Suspense fallback={<LoadingProgress />}>
               <Center>
-                <ModelRenderer url={getFullUrl(modelUrl)} wireframe={wireframe} />
+                <ModelRenderer url={localUrl!} originalUrl={modelUrl} wireframe={wireframe} />
               </Center>
             </Suspense>
 
