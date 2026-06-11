@@ -27,6 +27,15 @@ export class ModelsService {
     const attachments = files?.attachments || [];
     const videos = files?.videos || [];
 
+    if (
+      modelFiles.length === 0 &&
+      photos.length === 0 &&
+      attachments.length === 0 &&
+      videos.length === 0 &&
+      (!description || !description.trim())
+    ) {
+      throw new BadRequestException('At least one content field (3D model, photo, video, document, or description) must be added.');
+    }
 
     const allowedModelExtensions = ['.glb', '.gltf', '.fbx', '.obj'];
     const allowedVideoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];
@@ -460,6 +469,20 @@ export class ModelsService {
       const freshModelFiles = await this.prisma.modelFile.findMany({
         where: { modelId: model.id },
       });
+      const freshPhotos = await this.prisma.photo.findMany({ where: { modelId: model.id } });
+      const freshVideos = await this.prisma.video.findMany({ where: { modelId: model.id } });
+      const freshAttachments = await this.prisma.attachment.findMany({ where: { modelId: model.id } });
+      const freshDescription = description !== undefined ? description : model.description;
+
+      if (
+        freshModelFiles.length === 0 &&
+        freshPhotos.length === 0 &&
+        freshVideos.length === 0 &&
+        freshAttachments.length === 0 &&
+        (!freshDescription || !freshDescription.trim())
+      ) {
+        throw new BadRequestException('At least one content field (3D model, photo, video, document, or description) must be added.');
+      }
 
       // Update primary fileUrl and size on Model if necessary
       let updatedFileUrl = model.fileUrl;

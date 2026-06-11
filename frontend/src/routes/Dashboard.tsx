@@ -165,6 +165,24 @@ export default function Dashboard() {
   // Upload handler
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    const active3DCount = uploadFiles.length + (editingModel?.modelFiles?.filter((f) => !deleteModelFileIds.includes(f.id)).length || 0);
+    const activePhotosCount = uploadPhotos.length + (editingModel?.photos?.filter((f) => !deletePhotoIds.includes(f.id)).length || 0);
+    const activeVideosCount = uploadVideos.length + (editingModel?.videos?.filter((f) => !deleteVideoIds.includes(f.id)).length || 0);
+    const activeAttachmentsCount = uploadAttachments.length + (editingModel?.attachments?.filter((f) => !deleteAttachmentIds.includes(f.id)).length || 0);
+    const hasDescription = !!uploadDescription.trim();
+
+    if (
+      active3DCount === 0 &&
+      activePhotosCount === 0 &&
+      activeVideosCount === 0 &&
+      activeAttachmentsCount === 0 &&
+      !hasDescription
+    ) {
+      setUploadError('At least one content field (3D model, photo, video, document, or description) must be added.');
+      return;
+    }
+
     setUploadProgress(true);
     setUploadError('');
 
@@ -426,8 +444,8 @@ export default function Dashboard() {
       {toast && (
         <div
           className={`fixed top-5 right-5 z-[9999] flex items-center gap-3 px-4 py-3 rounded-xl shadow-2xl border text-sm font-medium animate-fade-in transition-all duration-300 ${toast.type === 'error'
-              ? 'bg-red-950/90 border-red-500/30 text-red-300'
-              : 'bg-emerald-950/90 border-emerald-500/30 text-emerald-300'
+            ? 'bg-red-950/90 border-red-500/30 text-red-300'
+            : 'bg-emerald-950/90 border-emerald-500/30 text-emerald-300'
             }`}
         >
           {toast.type === 'error' ? (
@@ -822,7 +840,7 @@ export default function Dashboard() {
                 {/* Showcase Name */}
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    Showcase Name (Optional)
+                    Showcase Name
                   </label>
                   <input
                     type="text"
@@ -836,7 +854,7 @@ export default function Dashboard() {
                 {/* 3D Model Files */}
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    3D Model Files (.glb, .gltf - Optional)
+                    3D Model Files (.glb, .gltf )
                   </label>
                   <div className="relative border border-dashed border-white/10 rounded-xl p-3 hover:border-blue-500/40 transition-colors bg-white/2">
                     <input
