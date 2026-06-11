@@ -156,6 +156,8 @@ export class SharesService {
             },
             photos: true,
             attachments: true,
+            modelFiles: true,
+            videos: true,
           },
         },
       },
@@ -200,12 +202,42 @@ export class SharesService {
         }))
       );
 
+      const modelFilesWithUrls = await Promise.all(
+        share.model.modelFiles.map(async (file) => ({
+          ...file,
+          downloadUrl: await this.modelsService.getModelForShare(file.fileUrl),
+        }))
+      );
+
+      let finalModelFiles = modelFilesWithUrls;
+      if (share.model.fileUrl && modelFilesWithUrls.length === 0) {
+        const primaryUrl = fileUrl;
+        finalModelFiles = [{
+          id: 'legacy-primary',
+          modelId: share.model.id,
+          fileUrl: share.model.fileUrl,
+          name: share.model.name + (share.model.fileUrl.endsWith('.gltf') ? '.gltf' : '.glb'),
+          size: share.model.size || 0,
+          createdAt: share.model.createdAt,
+          downloadUrl: primaryUrl!,
+        }];
+      }
+
+      const videosWithUrls = await Promise.all(
+        share.model.videos.map(async (video) => ({
+          ...video,
+          downloadUrl: await this.modelsService.getModelForShare(video.fileUrl),
+        }))
+      );
+
       richModelData = {
         ...richModelData,
         description: share.model.description,
         fileUrl,
         photos: photosWithUrls,
         attachments: attachmentsWithUrls,
+        modelFiles: finalModelFiles,
+        videos: videosWithUrls,
       };
     }
 
@@ -255,6 +287,8 @@ export class SharesService {
       include: {
         photos: true,
         attachments: true,
+        modelFiles: true,
+        videos: true,
       },
     });
 
@@ -278,6 +312,34 @@ export class SharesService {
       }))
     );
 
+    const modelFilesWithUrls = await Promise.all(
+      fullModel.modelFiles.map(async (file) => ({
+        ...file,
+        downloadUrl: await this.modelsService.getModelForShare(file.fileUrl),
+      }))
+    );
+
+    let finalModelFiles = modelFilesWithUrls;
+    if (fullModel.fileUrl && modelFilesWithUrls.length === 0) {
+      const primaryUrl = fileUrl;
+      finalModelFiles = [{
+        id: 'legacy-primary',
+        modelId: fullModel.id,
+        fileUrl: fullModel.fileUrl,
+        name: fullModel.name + (fullModel.fileUrl.endsWith('.gltf') ? '.gltf' : '.glb'),
+        size: fullModel.size || 0,
+        createdAt: fullModel.createdAt,
+        downloadUrl: primaryUrl!,
+      }];
+    }
+
+    const videosWithUrls = await Promise.all(
+      fullModel.videos.map(async (video) => ({
+        ...video,
+        downloadUrl: await this.modelsService.getModelForShare(video.fileUrl),
+      }))
+    );
+
     await this.prisma.share.update({
       where: { id: share.id },
       data: { views: { increment: 1 } },
@@ -289,6 +351,8 @@ export class SharesService {
       description: fullModel.description,
       photos: photosWithUrls,
       attachments: attachmentsWithUrls,
+      modelFiles: finalModelFiles,
+      videos: videosWithUrls,
       modelName: fullModel.name,
       size: fullModel.size,
     };

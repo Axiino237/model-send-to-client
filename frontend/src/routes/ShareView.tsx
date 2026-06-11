@@ -16,7 +16,8 @@ const autoUnlockedTokens = new Set<string>();
 export default function ShareView() {
   const { token } = useParams<{ token: string }>();
   const {
-    activeShare, unlockedFileUrl, unlockedDescription, unlockedPhotos, unlockedAttachments, loading, error,
+    activeShare, unlockedFileUrl, unlockedDescription, unlockedPhotos, unlockedAttachments,
+    unlockedModelFiles, unlockedVideos, loading, error,
     fetchShareMeta, unlockShare, logViewAnalytics, clear
   } = useShareStore();
 
@@ -30,6 +31,7 @@ export default function ShareView() {
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [imageLoading, setImageLoading] = useState(true);
   const [isWindowBlurred, setIsWindowBlurred] = useState(false);
+  const [activeModelIndex, setActiveModelIndex] = useState(0);
 
   useEffect(() => {
     const handleBlur = () => {
@@ -428,7 +430,28 @@ export default function ShareView() {
               </span>
             </div>
 
-            {unlockedFileUrl ? (
+            {/* Model selector buttons if multiple models exist */}
+            {unlockedModelFiles && unlockedModelFiles.length > 1 && (
+              <div className="flex items-center gap-2 mb-2 bg-white/2 border border-white/5 p-2 rounded-2xl overflow-x-auto scrollbar-none">
+                {unlockedModelFiles.map((file, idx) => (
+                  <button
+                    key={file.id}
+                    onClick={() => setActiveModelIndex(idx)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-all duration-200 shrink-0 ${
+                      idx === activeModelIndex
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                        : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <Box className="w-3.5 h-3.5" />
+                    <span>{file.name}</span>
+                    <span className="text-[10px] opacity-75 font-mono">({formatBytes(file.size)})</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {unlockedModelFiles && unlockedModelFiles.length > 0 ? (
               <div className="w-full min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
                 {/* Floating guide */}
                 <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none flex items-center gap-1.5 shadow-xl">
@@ -439,7 +462,24 @@ export default function ShareView() {
                   <span>Zoom: Scroll</span>
                 </div>
                 <ModelViewer
-                  modelUrl={unlockedFileUrl}
+                  modelUrl={getFullUrl(unlockedModelFiles[activeModelIndex]?.downloadUrl)}
+                  modelName={unlockedModelFiles[activeModelIndex]?.name || activeShare.model.name}
+                  companyName={activeShare.model.user.name}
+                  clientName={clientName || undefined}
+                />
+              </div>
+            ) : unlockedFileUrl ? (
+              <div className="w-full min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
+                {/* Floating guide */}
+                <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none flex items-center gap-1.5 shadow-xl">
+                  <span>Orbit: Drag</span>
+                  <span className="w-1 h-1 bg-white/20 rounded-full"></span>
+                  <span>Pan: Right Drag</span>
+                  <span className="w-1 h-1 bg-white/20 rounded-full"></span>
+                  <span>Zoom: Scroll</span>
+                </div>
+                <ModelViewer
+                  modelUrl={getFullUrl(unlockedFileUrl)}
                   modelName={activeShare.model.name}
                   companyName={activeShare.model.user.name}
                   clientName={clientName || undefined}
@@ -452,6 +492,50 @@ export default function ShareView() {
               </div>
             )}
           </div>
+
+          {/* Section: Project Videos & Demos */}
+          {unlockedVideos && unlockedVideos.length > 0 && (
+            <div className="flex flex-col gap-4 bg-slate-900/40 rounded-3xl border border-white/5 p-6 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:border-white/10 relative">
+              {/* Glowing header line */}
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-indigo-500 opacity-50"></div>
+
+              <div className="flex items-center justify-between gap-2 mb-2 pb-3 border-b border-white/5">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4.5 h-4.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">Project Videos &amp; Demos</h3>
+                </div>
+                <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold uppercase tracking-widest">
+                  {unlockedVideos.length} Video{unlockedVideos.length > 1 ? 's' : ''}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {unlockedVideos.map((video) => (
+                  <div
+                    key={video.id}
+                    className="flex flex-col gap-3 p-4 rounded-2xl bg-white/2 border border-white/5 hover:border-white/10 hover:bg-white/3 transition-all duration-200"
+                  >
+                    <span className="text-xs font-semibold text-slate-100 block truncate" title={video.name}>
+                      {video.name}
+                    </span>
+                    <div className="w-full aspect-video rounded-xl overflow-hidden bg-black border border-white/5">
+                      <video
+                        src={getFullUrl(video.downloadUrl)}
+                        controls
+                        controlsList="nodownload"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono self-end">
+                      {formatBytes(video.size)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Section 2: Photos Gallery */}
           {unlockedPhotos && unlockedPhotos.length > 0 && (

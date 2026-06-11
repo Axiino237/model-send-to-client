@@ -17,36 +17,40 @@ export class ModelsService {
       file?: Express.Multer.File[];
       photos?: Express.Multer.File[];
       attachments?: Express.Multer.File[];
+      videos?: Express.Multer.File[];
     },
     name: string,
     description?: string,
   ) {
-    const file = files?.file?.[0] || null;
+    const modelFiles = files?.file || [];
     const photos = files?.photos || [];
     const attachments = files?.attachments || [];
+    const videos = files?.videos || [];
 
-    if (!file && photos.length === 0 && !description) {
-      throw new BadRequestException('At least a 3D model file, photos, or description is required');
+    if (modelFiles.length === 0 && photos.length === 0 && !description && videos.length === 0) {
+      throw new BadRequestException('At least a 3D model, photos, videos, or description is required');
     }
+
+    const allowedModelExtensions = ['.glb', '.gltf', '.fbx', '.obj'];
+    const allowedVideoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi', '.mkv'];
 
     let fileUrl: string | null = null;
     let size: number | null = null;
 
     try {
       try {
-        if (file) {
-          const fileExt = path.extname(file.originalname).toLowerCase();
-          const allowedExtensions = ['.glb', '.gltf', '.fbx', '.obj'];
-          if (!allowedExtensions.includes(fileExt)) {
-            throw new BadRequestException(`Invalid file format. Supported formats: ${allowedExtensions.join(', ')}`);
+        const primaryModelFile = modelFiles[0] || null;
+        if (primaryModelFile) {
+          const fileExt = path.extname(primaryModelFile.originalname).toLowerCase();
+          if (!allowedModelExtensions.includes(fileExt)) {
+            throw new BadRequestException(`Invalid file format for 3D Model: ${primaryModelFile.originalname}`);
           }
-
-          const storageKey = `models/${user.id}/${Date.now()}-${file.originalname}`;
-          fileUrl = await this.storage.uploadFile(file, storageKey);
-          size = file.size;
+          const storageKey = `models/${user.id}/${Date.now()}-${primaryModelFile.originalname}`;
+          fileUrl = await this.storage.uploadFile(primaryModelFile, storageKey);
+          size = primaryModelFile.size;
         }
 
-        const displayName = name || (file ? file.originalname.replace(path.extname(file.originalname), '') : 'Showcase');
+        const displayName = name || (primaryModelFile ? primaryModelFile.originalname.replace(path.extname(primaryModelFile.originalname), '') : 'Showcase');
 
         const model = await this.prisma.model.create({
           data: {
@@ -58,6 +62,29 @@ export class ModelsService {
             thumbnail: null,
           },
         });
+
+        for (const mFile of modelFiles) {
+          const fileExt = path.extname(mFile.originalname).toLowerCase();
+          if (!allowedModelExtensions.includes(fileExt)) {
+            throw new BadRequestException(`Invalid file format for 3D Model: ${mFile.originalname}`);
+          }
+          let mFileUrl = '';
+          if (mFile === primaryModelFile) {
+            mFileUrl = fileUrl!;
+          } else {
+            const storageKey = `models/${user.id}/${Date.now()}-${mFile.originalname}`;
+            mFileUrl = await this.storage.uploadFile(mFile, storageKey);
+          }
+
+          await this.prisma.modelFile.create({
+            data: {
+              modelId: model.id,
+              fileUrl: mFileUrl,
+              name: mFile.originalname,
+              size: mFile.size,
+            },
+          });
+        }
 
         for (const photo of photos) {
           const photoKey = `photos/${user.id}/${Date.now()}-${photo.originalname}`;
@@ -85,17 +112,34 @@ export class ModelsService {
           });
         }
 
+        for (const video of videos) {
+          const videoExt = path.extname(video.originalname).toLowerCase();
+          if (!allowedVideoExtensions.includes(videoExt)) {
+            throw new BadRequestException(`Invalid file format for Video: ${video.originalname}`);
+          }
+          const videoKey = `videos/${user.id}/${Date.now()}-${video.originalname}`;
+          const videoUrl = await this.storage.uploadFile(video, videoKey);
+          await this.prisma.video.create({
+            data: {
+              modelId: model.id,
+              fileUrl: videoUrl,
+              name: video.originalname,
+              size: video.size,
+            },
+          });
+        }
+
         return model;
       } catch (err) {
         console.error('[ModelsService.uploadModel] Error occurred during upload:', err);
         throw err;
       }
     } finally {
-      // Clean up local temp files
       const allFiles = [
         ...(files?.file || []),
         ...(files?.photos || []),
         ...(files?.attachments || []),
+        ...(files?.videos || []),
       ];
       for (const f of allFiles) {
         if (f.path && fs.existsSync(f.path)) {
@@ -138,6 +182,8 @@ export class ModelsService {
         },
         photos: true,
         attachments: true,
+        modelFiles: true,
+        videos: true,
       },
     });
 
@@ -159,11 +205,40 @@ export class ModelsService {
           }))
         );
 
+        const modelFilesWithUrls = await Promise.all(
+          model.modelFiles.map(async (file) => ({
+            ...file,
+            downloadUrl: await this.storage.getDownloadUrl(file.fileUrl),
+          }))
+        );
+
+        let finalModelFiles = modelFilesWithUrls;
+        if (model.fileUrl && modelFilesWithUrls.length === 0) {
+          finalModelFiles = [{
+            id: 'legacy-primary',
+            modelId: model.id,
+            fileUrl: model.fileUrl,
+            name: model.name + (model.fileUrl.endsWith('.gltf') ? '.gltf' : '.glb'),
+            size: model.size || 0,
+            createdAt: model.createdAt,
+            downloadUrl: downloadUrl!,
+          }];
+        }
+
+        const videosWithUrls = await Promise.all(
+          model.videos.map(async (video) => ({
+            ...video,
+            downloadUrl: await this.storage.getDownloadUrl(video.fileUrl),
+          }))
+        );
+
         return {
           ...model,
           downloadUrl,
           photos: photosWithUrls,
           attachments: attachmentsWithUrls,
+          modelFiles: finalModelFiles,
+          videos: videosWithUrls,
         };
       })
     );
@@ -194,6 +269,8 @@ export class ModelsService {
       include: {
         photos: true,
         attachments: true,
+        modelFiles: true,
+        videos: true,
       },
     });
 
@@ -215,6 +292,16 @@ export class ModelsService {
 
     for (const attachment of model.attachments) {
       await this.storage.deleteFile(attachment.fileUrl);
+    }
+
+    for (const mFile of model.modelFiles) {
+      if (mFile.fileUrl !== model.fileUrl) {
+        await this.storage.deleteFile(mFile.fileUrl);
+      }
+    }
+
+    for (const video of model.videos) {
+      await this.storage.deleteFile(video.fileUrl);
     }
 
     try {

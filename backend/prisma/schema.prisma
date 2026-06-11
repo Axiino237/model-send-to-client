@@ -33,6 +33,8 @@ model Model {
   shares      Share[]
   photos      Photo[]
   attachments Attachment[]
+  modelFiles  ModelFile[]
+  videos      Video[]
 
   @@map("models")
 }
@@ -88,5 +90,29 @@ model Attachment {
   model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
 
   @@map("attachments")
+}
+
+model ModelFile {
+  id        String   @id @default(uuid())
+  modelId   String   @map("model_id")
+  fileUrl   String   @map("file_url")
+  name      String
+  size      Int
+  createdAt DateTime @default(now()) @map("created_at")
+  model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@map("model_files")
+}
+
+model Video {
+  id        String   @id @default(uuid())
+  modelId   String   @map("model_id")
+  fileUrl   String   @map("file_url")
+  name      String
+  size      Int
+  createdAt DateTime @default(now()) @map("created_at")
+  model     Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  @@map("videos")
 }
 

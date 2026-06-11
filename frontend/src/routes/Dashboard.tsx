@@ -45,11 +45,12 @@ export default function Dashboard() {
   // Search & Modals state
   const [search, setSearch] = useState('');
   const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadName, setUploadName] = useState('');
   const [uploadDescription, setUploadDescription] = useState('');
   const [uploadPhotos, setUploadPhotos] = useState<File[]>([]);
   const [uploadAttachments, setUploadAttachments] = useState<File[]>([]);
+  const [uploadVideos, setUploadVideos] = useState<File[]>([]);
   const [uploadProgress, setUploadProgress] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
@@ -93,11 +94,12 @@ export default function Dashboard() {
 
   const resetUploadForm = () => {
     setIsUploadOpen(false);
-    setUploadFile(null);
+    setUploadFiles([]);
     setUploadName('');
     setUploadDescription('');
     setUploadPhotos([]);
     setUploadAttachments([]);
+    setUploadVideos([]);
     setEditorWordCount(0);
     setEditorCharCount(0);
     setEditorFont('sans');
@@ -129,8 +131,8 @@ export default function Dashboard() {
   // Upload handler
   const handleUploadSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadFile || !uploadDescription.trim()) {
-      setUploadError('3D Model File and Showcase Description are both required.');
+    if (uploadFiles.length === 0 || !uploadDescription.trim()) {
+      setUploadError('At least one 3D Model File and Showcase Description are both required.');
       return;
     }
     setUploadProgress(true);
@@ -138,11 +140,12 @@ export default function Dashboard() {
 
     try {
       await uploadModel(
-        uploadFile,
+        uploadFiles,
         uploadName,
         uploadDescription,
         uploadPhotos,
         uploadAttachments,
+        uploadVideos,
       );
       resetUploadForm();
     } catch (err: any) {
@@ -576,7 +579,7 @@ export default function Dashboard() {
                         <td className="py-4 px-6">
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
-                              {model.fileUrl ? <Box className="w-4.5 h-4.5" /> : <Layers className="w-4.5 h-4.5 text-indigo-400" />}
+                              {(model.modelFiles && model.modelFiles.length > 0) || model.fileUrl ? <Box className="w-4.5 h-4.5" /> : <Layers className="w-4.5 h-4.5 text-indigo-400" />}
                             </div>
                             <div>
                               {editingModelId === model.id ? (
@@ -619,13 +622,22 @@ export default function Dashboard() {
                               )}
 
                               <div className="flex flex-wrap gap-1.5 mt-1 items-center">
-                                {model.fileUrl ? (
+                                {model.modelFiles && model.modelFiles.length > 0 ? (
+                                  <span className="text-[9px] text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider animate-pulse">
+                                    {model.modelFiles.length} 3D Model{model.modelFiles.length > 1 ? 's' : ''}
+                                  </span>
+                                ) : model.fileUrl ? (
                                   <span className="text-[10px] text-slate-500 font-mono bg-white/2 px-1.5 py-0.5 rounded border border-white/5 truncate max-w-[200px]" title={model.fileUrl}>
                                     {model.fileUrl.split('/').pop()}
                                   </span>
                                 ) : (
                                   <span className="text-[9px] text-indigo-400 bg-indigo-500/10 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
                                     No 3D Model
+                                  </span>
+                                )}
+                                {model.videos && model.videos.length > 0 && (
+                                  <span className="text-[9px] text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded font-bold uppercase tracking-wider">
+                                    {model.videos.length} Video{model.videos.length > 1 ? 's' : ''}
                                   </span>
                                 )}
                                 {model.photos && model.photos.length > 0 && (
@@ -650,7 +662,11 @@ export default function Dashboard() {
 
                         {/* Size */}
                         <td className="py-4 px-6 text-xs text-slate-300 font-medium">
-                          {model.size ? formatBytes(model.size) : <span className="text-slate-600 italic">No 3D file</span>}
+                          {model.modelFiles && model.modelFiles.length > 0 
+                            ? formatBytes(model.modelFiles.reduce((acc, f) => acc + f.size, 0))
+                            : model.size 
+                              ? formatBytes(model.size) 
+                              : <span className="text-slate-600 italic">No 3D file</span>}
                         </td>
 
                         {/* Date */}
@@ -750,41 +766,75 @@ export default function Dashboard() {
                   />
                 </div>
 
-                {/* 3D Model File */}
+                {/* 3D Model Files */}
                 <div>
                   <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
-                    3D Model File (.glb, .gltf- Required)
+                    3D Model Files (.glb, .gltf - At least one required)
                   </label>
-                  <div className="flex flex-col items-center justify-center border border-dashed border-white/10 rounded-xl p-4 hover:border-blue-500/50 transition-colors bg-white/2 cursor-pointer relative">
+                  <div className="relative border border-dashed border-white/10 rounded-xl p-3 hover:border-blue-500/40 transition-colors bg-white/2">
                     <input
                       type="file"
+                      multiple
                       accept=".glb,.gltf"
                       onChange={(e) => {
-                        const file = e.target.files?.[0] || null;
-                        if (file) {
-                          const ext = file.name.split('.').pop()?.toLowerCase();
-                          if (ext !== 'glb' && ext !== 'gltf') {
-                            showToast('Invalid file format! Only .glb and .gltf files are supported.', 'error');
-                            e.target.value = '';
-                            setUploadFile(null);
-                            return;
-                          }
+                        const allowed = ['glb', 'gltf'];
+                        const newFiles = Array.from(e.target.files || []);
+                        const invalid = newFiles.filter(f => {
+                          const ext = f.name.split('.').pop()?.toLowerCase();
+                          return !allowed.includes(ext || '');
+                        });
+                        if (invalid.length > 0) {
+                          showToast(`Invalid file(s): ${invalid.map(f => f.name).join(', ')}. Only GLB and GLTF allowed.`, 'error');
+                          e.target.value = '';
+                          return;
                         }
-                        setUploadFile(file);
-                        if (file && !uploadName) {
-                          setUploadName(file.name.substring(0, file.name.lastIndexOf('.')));
+                        setUploadFiles(prev => [...prev, ...newFiles]);
+                        if (newFiles.length > 0 && !uploadName) {
+                          setUploadName(newFiles[0].name.substring(0, newFiles[0].name.lastIndexOf('.')));
                         }
+                        e.target.value = '';
                       }}
-                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                     />
-                    <Box className="w-6 h-6 text-slate-500 mb-1" />
-                    <span className="text-[10px] text-slate-300 font-semibold text-center truncate max-w-full">
-                      {uploadFile ? uploadFile.name : 'Select 3D model'}
-                    </span>
-                    {uploadFile && (
-                      <span className="text-[9px] text-slate-500 mt-0.5">{formatBytes(uploadFile.size)}</span>
-                    )}
+                    <div className="flex flex-col items-center justify-center py-3 pointer-events-none">
+                      <Box className="w-6 h-6 text-slate-500 mb-1" />
+                      <span className="text-[10px] text-slate-400 font-medium text-center">Click or drag 3D models here</span>
+                      <span className="text-[9px] text-slate-600 mt-0.5">GLB, GLTF only</span>
+                    </div>
                   </div>
+                  {uploadFiles.length > 0 && (
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-[9px] text-blue-400 font-medium">{uploadFiles.length} model{uploadFiles.length > 1 ? 's' : ''} selected</span>
+                      <button
+                        type="button"
+                        onClick={() => setUploadFiles([])}
+                        className="text-[9px] text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                  )}
+                  {uploadFiles.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {uploadFiles.map((file, idx) => (
+                        <span
+                          key={idx}
+                          className="flex items-center gap-1 text-[9px] bg-white/5 border border-white/8 text-slate-300 px-2 py-0.5 rounded-full"
+                        >
+                          <Box className="w-3 h-3 text-blue-400" />
+                          {file.name.length > 16 ? file.name.substring(0, 14) + '…' : file.name}
+                          <span className="text-[8px] text-slate-500">({formatBytes(file.size)})</span>
+                          <button
+                            type="button"
+                            onClick={() => setUploadFiles(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-slate-500 hover:text-red-400 cursor-pointer ml-0.5 leading-none"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Renders / Photos */}
@@ -1005,6 +1055,74 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* Video Files */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+                    Video Files (.mp4, .webm, .ogg, .mov, .avi, .mkv)
+                  </label>
+                  <div className="relative border border-dashed border-white/10 rounded-xl p-3 hover:border-emerald-500/40 transition-colors bg-white/2">
+                    <input
+                      type="file"
+                      multiple
+                      accept=".mp4,.webm,.ogg,.mov,.avi,.mkv,video/*"
+                      onChange={(e) => {
+                        const allowed = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];
+                        const newFiles = Array.from(e.target.files || []);
+                        const invalid = newFiles.filter(f => {
+                          const ext = f.name.split('.').pop()?.toLowerCase();
+                          return !allowed.includes(ext || '');
+                        });
+                        if (invalid.length > 0) {
+                          showToast(`Invalid file(s): ${invalid.map(f => f.name).join(', ')}. Only MP4, WEBM, OGG, MOV, AVI, MKV allowed.`, 'error');
+                          e.target.value = '';
+                          return;
+                        }
+                        setUploadVideos(prev => [...prev, ...newFiles]);
+                        e.target.value = '';
+                      }}
+                      className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    />
+                    <div className="flex flex-col items-center justify-center py-3 pointer-events-none">
+                      <svg className="w-6 h-6 text-slate-500 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                      <span className="text-[10px] text-slate-400 font-medium">Click or drag videos here</span>
+                      <span className="text-[9px] text-slate-600 mt-0.5">MP4, WEBM, OGG, MOV, AVI, MKV</span>
+                    </div>
+                  </div>
+                  {uploadVideos.length > 0 && (
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className="text-[9px] text-emerald-400 font-medium">{uploadVideos.length} video{uploadVideos.length > 1 ? 's' : ''} selected</span>
+                      <button
+                        type="button"
+                        onClick={() => setUploadVideos([])}
+                        className="text-[9px] text-slate-500 hover:text-red-400 transition-colors cursor-pointer"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                  )}
+                  {uploadVideos.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {uploadVideos.map((file, idx) => (
+                        <span
+                          key={idx}
+                          className="flex items-center gap-1 text-[9px] bg-white/5 border border-white/8 text-slate-300 px-2 py-0.5 rounded-full"
+                        >
+                          <span className="text-emerald-400">📹</span>
+                          {file.name.length > 16 ? file.name.substring(0, 14) + '…' : file.name}
+                          <span className="text-[8px] text-slate-500">({formatBytes(file.size)})</span>
+                          <button
+                            type="button"
+                            onClick={() => setUploadVideos(prev => prev.filter((_, i) => i !== idx))}
+                            className="text-slate-500 hover:text-red-400 cursor-pointer ml-0.5 leading-none"
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1020,7 +1138,7 @@ export default function Dashboard() {
               <button
                 type="button"
                 onClick={handleUploadSubmit}
-                disabled={uploadProgress || !uploadName || !uploadFile || !uploadDescription.trim()}
+                disabled={uploadProgress || !uploadName || uploadFiles.length === 0 || !uploadDescription.trim()}
                 className="flex-1 flex items-center justify-center py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-lg shadow-blue-500/10 cursor-pointer transition-all"
               >
                 {uploadProgress ? (

@@ -35,9 +35,10 @@ export class ModelsController {
   @UseInterceptors(
     FileFieldsInterceptor(
       [
-        { name: 'file', maxCount: 1 },
+        { name: 'file', maxCount: 10 },
         { name: 'photos', maxCount: 10 },
         { name: 'attachments', maxCount: 10 },
+        { name: 'videos', maxCount: 10 },
       ],
       {
         storage: diskStorage({
@@ -63,6 +64,7 @@ export class ModelsController {
       file?: Express.Multer.File[];
       photos?: Express.Multer.File[];
       attachments?: Express.Multer.File[];
+      videos?: Express.Multer.File[];
     },
     @Body('name') name: string,
     @Body('description') description?: string,
@@ -99,7 +101,7 @@ export class ModelsController {
     @Param('filename') filename: string,
     @Res() res: Response,
   ) {
-    if (!['models', 'photos', 'attachments'].includes(type)) {
+    if (!['models', 'photos', 'attachments', 'videos'].includes(type)) {
       throw new NotFoundException('Invalid file type');
     }
     const key = `${type}/${userId}/${filename}`;

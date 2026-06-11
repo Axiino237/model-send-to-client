@@ -19,6 +19,24 @@ export interface AttachmentDetails {
   downloadUrl: string;
 }
 
+export interface ModelFileDetails {
+  id: string;
+  modelId: string;
+  fileUrl: string;
+  name: string;
+  size: number;
+  downloadUrl: string;
+}
+
+export interface VideoDetails {
+  id: string;
+  modelId: string;
+  fileUrl: string;
+  name: string;
+  size: number;
+  downloadUrl: string;
+}
+
 export interface SharedModelDetails {
   id: string;
   modelId: string;
@@ -40,6 +58,8 @@ export interface SharedModelDetails {
     };
     photos?: PhotoDetails[];
     attachments?: AttachmentDetails[];
+    modelFiles?: ModelFileDetails[];
+    videos?: VideoDetails[];
   };
 }
 
@@ -49,6 +69,8 @@ interface ShareStore {
   unlockedDescription: string | null;
   unlockedPhotos: PhotoDetails[];
   unlockedAttachments: AttachmentDetails[];
+  unlockedModelFiles: ModelFileDetails[];
+  unlockedVideos: VideoDetails[];
   loading: boolean;
   error: string | null;
   
@@ -67,6 +89,8 @@ export const useShareStore = create<ShareStore>((set) => ({
   unlockedDescription: null,
   unlockedPhotos: [],
   unlockedAttachments: [],
+  unlockedModelFiles: [],
+  unlockedVideos: [],
   loading: false,
   error: null,
 
@@ -79,6 +103,8 @@ export const useShareStore = create<ShareStore>((set) => ({
         unlockedDescription: activeShare.model?.description || null,
         unlockedPhotos: activeShare.model?.photos || [],
         unlockedAttachments: activeShare.model?.attachments || [],
+        unlockedModelFiles: activeShare.model?.modelFiles || [],
+        unlockedVideos: activeShare.model?.videos || [],
         loading: false 
       });
     } catch (err: any) {
@@ -100,6 +126,8 @@ export const useShareStore = create<ShareStore>((set) => ({
         unlockedDescription: data.description || null,
         unlockedPhotos: data.photos || [],
         unlockedAttachments: data.attachments || [],
+        unlockedModelFiles: data.modelFiles || [],
+        unlockedVideos: data.videos || [],
         loading: false 
       });
     } catch (err: any) {
@@ -162,6 +190,8 @@ export const useShareStore = create<ShareStore>((set) => ({
     unlockedDescription: null,
     unlockedPhotos: [],
     unlockedAttachments: [],
+    unlockedModelFiles: [],
+    unlockedVideos: [],
     error: null 
   }),
 }));
