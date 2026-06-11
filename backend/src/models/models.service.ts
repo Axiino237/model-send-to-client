@@ -288,26 +288,19 @@ export class ModelsService {
       throw new ForbiddenException('You do not have permission to delete this model');
     }
 
-    if (model.fileUrl) {
-      await this.storage.deleteFile(model.fileUrl);
-    }
+    const fileUrlsToDelete: string[] = [];
+    if (model.fileUrl) fileUrlsToDelete.push(model.fileUrl);
+    model.photos.forEach(p => fileUrlsToDelete.push(p.fileUrl));
+    model.attachments.forEach(a => fileUrlsToDelete.push(a.fileUrl));
+    model.modelFiles.forEach(m => {
+      if (m.fileUrl !== model.fileUrl) fileUrlsToDelete.push(m.fileUrl);
+    });
+    model.videos.forEach(v => fileUrlsToDelete.push(v.fileUrl));
 
-    for (const photo of model.photos) {
-      await this.storage.deleteFile(photo.fileUrl);
-    }
-
-    for (const attachment of model.attachments) {
-      await this.storage.deleteFile(attachment.fileUrl);
-    }
-
-    for (const mFile of model.modelFiles) {
-      if (mFile.fileUrl !== model.fileUrl) {
-        await this.storage.deleteFile(mFile.fileUrl);
-      }
-    }
-
-    for (const video of model.videos) {
-      await this.storage.deleteFile(video.fileUrl);
+    // Fire and forget storage deletions in parallel in the background
+    if (fileUrlsToDelete.length > 0) {
+      Promise.all(fileUrlsToDelete.map(url => this.storage.deleteFile(url)))
+        .catch(err => console.error('Failed to delete files in background:', err));
     }
 
     try {
@@ -358,11 +351,13 @@ export class ModelsService {
       throw new ForbiddenException('You do not have permission to modify this model');
     }
 
-    // Process deletions
+    const urlsToDelete: string[] = [];
+
+    // Process database deletions first and collect storage URLs to delete in background
     for (const id of deleteModelFileIds) {
       const file = model.modelFiles.find((f) => f.id === id);
       if (file) {
-        await this.storage.deleteFile(file.fileUrl);
+        urlsToDelete.push(file.fileUrl);
         await this.prisma.modelFile.delete({ where: { id } });
       }
     }
@@ -370,7 +365,7 @@ export class ModelsService {
     for (const id of deletePhotoIds) {
       const photo = model.photos.find((p) => p.id === id);
       if (photo) {
-        await this.storage.deleteFile(photo.fileUrl);
+        urlsToDelete.push(photo.fileUrl);
         await this.prisma.photo.delete({ where: { id } });
       }
     }
@@ -378,7 +373,7 @@ export class ModelsService {
     for (const id of deleteAttachmentIds) {
       const attachment = model.attachments.find((a) => a.id === id);
       if (attachment) {
-        await this.storage.deleteFile(attachment.fileUrl);
+        urlsToDelete.push(attachment.fileUrl);
         await this.prisma.attachment.delete({ where: { id } });
       }
     }
@@ -386,9 +381,15 @@ export class ModelsService {
     for (const id of deleteVideoIds) {
       const video = model.videos.find((v) => v.id === id);
       if (video) {
-        await this.storage.deleteFile(video.fileUrl);
+        urlsToDelete.push(video.fileUrl);
         await this.prisma.video.delete({ where: { id } });
       }
+    }
+
+    // Fire and forget storage deletions in background
+    if (urlsToDelete.length > 0) {
+      Promise.all(urlsToDelete.map(url => this.storage.deleteFile(url)))
+        .catch(err => console.error('Failed to delete files in background:', err));
     }
 
     const modelFiles = files?.file || [];
