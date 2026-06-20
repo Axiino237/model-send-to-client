@@ -61,6 +61,7 @@ export class SharesService {
         passwordPlain,
         expiresAt,
         maxViews: dto.maxViews || null,
+        createdAt: new Date(),
       },
     });
 

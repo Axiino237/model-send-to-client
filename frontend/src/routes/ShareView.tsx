@@ -386,7 +386,7 @@ export default function ShareView() {
 
       <div className="max-w-4xl w-full mx-auto flex-1 flex flex-col gap-6 z-10 justify-center">
         {/* Header Panel */}
-        <header className="glass-panel border border-white/10 p-6 rounded-3xl backdrop-blur-xl shadow-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-6 relative overflow-hidden transition-all duration-300 hover:border-white/15">
+        <header className="glass-panel border border-white/10 p-4 md:p-6 rounded-3xl backdrop-blur-xl shadow-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6 relative overflow-hidden transition-all duration-300 hover:border-white/15">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
           <div className="flex items-center gap-4 z-10">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -415,13 +415,13 @@ export default function ShareView() {
               })}
             </div>
             {unlockedFileUrl && (
-              <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-4">
+              <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-4 w-full md:w-auto">
                 <input
                   type="text"
                   placeholder="Watermark name..."
                   value={clientName}
                   onChange={(e) => setClientName(e.target.value)}
-                  className="glass-input px-3 py-2 rounded-xl text-xs w-40 placeholder:text-slate-500 focus:border-blue-500/80"
+                  className="glass-input px-3 py-2 rounded-xl text-xs w-full md:w-40 placeholder:text-slate-500 focus:border-blue-500/80"
                   title="Add name to viewport watermark"
                 />
               </div>
@@ -469,9 +469,9 @@ export default function ShareView() {
               )}
 
               {unlockedModelFiles && unlockedModelFiles.length > 0 ? (
-                <div className="w-full min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
+                <div className="w-full min-h-[380px] sm:min-h-[480px] md:min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
                   {/* Floating guide */}
-                  <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none flex items-center gap-1.5 shadow-xl">
+                  <div className="hidden sm:flex absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none items-center gap-1.5 shadow-xl">
                     <span>Orbit: Drag</span>
                     <span className="w-1 h-1 bg-white/20 rounded-full"></span>
                     <span>Pan: Right Drag</span>
@@ -486,9 +486,9 @@ export default function ShareView() {
                   />
                 </div>
               ) : unlockedFileUrl ? (
-                <div className="w-full min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
+                <div className="w-full min-h-[380px] sm:min-h-[480px] md:min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
                   {/* Floating guide */}
-                  <div className="absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none flex items-center gap-1.5 shadow-xl">
+                  <div className="hidden sm:flex absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none items-center gap-1.5 shadow-xl">
                     <span>Orbit: Drag</span>
                     <span className="w-1 h-1 bg-white/20 rounded-full"></span>
                     <span>Pan: Right Drag</span>

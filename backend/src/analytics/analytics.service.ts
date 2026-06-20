@@ -35,6 +35,7 @@ export class AnalyticsService {
         country: country || 'Unknown',
         device,
         browser,
+        viewedAt: new Date(),
       },
     });
   }

@@ -32,6 +32,7 @@ export class AuthService {
         email: dto.email.toLowerCase(),
         password: hashedPassword,
         role,
+        createdAt: new Date(),
       },
     });
 
