@@ -670,44 +670,7 @@ export default function Dashboard() {
                               {(model.modelFiles && model.modelFiles.length > 0) || model.fileUrl ? <Box className="w-4.5 h-4.5" /> : <Layers className="w-4.5 h-4.5 text-indigo-400" />}
                             </div>
                             <div>
-                              {editingModelId === model.id ? (
-                                <div className="flex items-center gap-2">
-                                  <input
-                                    type="text"
-                                    value={editName}
-                                    onChange={(e) => setEditName(e.target.value)}
-                                    className="glass-input px-2 py-1 text-sm rounded-md w-40"
-                                  />
-                                  <button
-                                    onClick={async () => {
-                                      await renameModel(model.id, editName);
-                                      setEditingModelId(null);
-                                    }}
-                                    className="text-xs font-bold text-blue-400 hover:text-blue-300 px-2 cursor-pointer"
-                                  >
-                                    Save
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingModelId(null)}
-                                    className="text-xs text-slate-500 hover:text-slate-400 px-1 cursor-pointer"
-                                  >
-                                    Cancel
-                                  </button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <span className="font-semibold text-white">{model.name}</span>
-                                  <button
-                                    onClick={() => {
-                                      setEditingModelId(model.id);
-                                      setEditName(model.name);
-                                    }}
-                                    className="p-1 rounded text-slate-500 hover:text-slate-300 transition-colors"
-                                  >
-                                    <Edit2 className="w-3 h-3" />
-                                  </button>
-                                </div>
-                              )}
+                              <span className="font-semibold text-white">{model.name}</span>
 
                               <div className="flex flex-wrap gap-1.5 mt-1 items-center">
                                 {model.modelFiles && model.modelFiles.length > 0 ? (
