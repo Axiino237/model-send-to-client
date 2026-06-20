@@ -36,7 +36,7 @@ export default function Dashboard() {
   const { user, logout, isAuthenticated, initialize } = useAuthStore();
   const {
     models, stats, dailyViews, devices, loading, error,
-    fetchModels, fetchDashboardData, uploadModel, renameModel, deleteModel, updateModel
+    fetchModels, fetchDashboardData, uploadModel, deleteModel, updateModel
   } = useModelStore();
   const { createShareLink, deleteShareLink, resetShareViews } = useShareStore();
 
@@ -70,9 +70,7 @@ export default function Dashboard() {
   const [generatedLink, setGeneratedLink] = useState('');
   const [copySuccess, setCopySuccess] = useState(false);
 
-  // Rename state
-  const [editingModelId, setEditingModelId] = useState<string | null>(null);
-  const [editName, setEditName] = useState('');
+
 
   // Custom Confirmation Modal state
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
