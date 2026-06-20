@@ -349,9 +349,33 @@ export default function Dashboard() {
 
   // Copy share link
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(generatedLink);
-    setCopySuccess(true);
-    setTimeout(() => setCopySuccess(false), 2000);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(generatedLink)
+        .then(() => {
+          setCopySuccess(true);
+          setTimeout(() => setCopySuccess(false), 2000);
+        })
+        .catch(() => fallbackCopy(generatedLink));
+    } else {
+      fallbackCopy(generatedLink);
+    }
+  };
+
+  const fallbackCopy = (text: string) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Fallback copy failed', err);
+    }
+    document.body.removeChild(textArea);
   };
 
   // Format File Size
@@ -1688,13 +1712,43 @@ export default function Dashboard() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => {
-                            navigator.clipboard.writeText(fullUrl);
-                            setGeneratedLink(fullUrl);
-                            setCopySuccess(true);
-                            setTimeout(() => {
-                              setCopySuccess(false);
-                              setGeneratedLink('');
-                            }, 2000);
+                            const doCopy = (text: string) => {
+                              if (navigator.clipboard && navigator.clipboard.writeText) {
+                                navigator.clipboard.writeText(text)
+                                  .then(() => {
+                                    setGeneratedLink(text);
+                                    setCopySuccess(true);
+                                    setTimeout(() => {
+                                      setCopySuccess(false);
+                                      setGeneratedLink('');
+                                    }, 2000);
+                                  })
+                                  .catch(() => fallbackCopyInline(text));
+                              } else {
+                                fallbackCopyInline(text);
+                              }
+                            };
+                            const fallbackCopyInline = (text: string) => {
+                              const textArea = document.createElement("textarea");
+                              textArea.value = text;
+                              textArea.style.position = "fixed";
+                              textArea.style.opacity = "0";
+                              document.body.appendChild(textArea);
+                              textArea.select();
+                              try {
+                                document.execCommand('copy');
+                                setGeneratedLink(text);
+                                setCopySuccess(true);
+                                setTimeout(() => {
+                                  setCopySuccess(false);
+                                  setGeneratedLink('');
+                                }, 2000);
+                              } catch (err) {
+                                console.error(err);
+                              }
+                              document.body.removeChild(textArea);
+                            };
+                            doCopy(fullUrl);
                           }}
                           className="flex-1 flex justify-center items-center gap-1.5 py-2 px-3 border border-white/5 hover:border-white/10 rounded-lg text-xs font-semibold text-white bg-slate-900 hover:bg-slate-800 cursor-pointer transition-all"
                         >
