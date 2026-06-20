@@ -218,7 +218,7 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
       };
 
       xhr.onload = () => {
-        if (!active) return;
+        if (!active || !xhr) return;
         if (xhr.status === 200) {
           const blob = xhr.response;
           currentBlobUrl = URL.createObjectURL(blob);
