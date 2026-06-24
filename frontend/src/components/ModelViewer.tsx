@@ -206,6 +206,32 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
     };
   }, []);
 
+  // iOS Safari Fullscreen Hack: Remove containing blocks from parents
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    let el: HTMLElement | null = containerRef.current.parentElement;
+    const parents: HTMLElement[] = [];
+    
+    while (el && el !== document.body) {
+      parents.push(el);
+      el = el.parentElement;
+    }
+
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+      parents.forEach(p => p.classList.add('ios-fullscreen-parent'));
+    } else {
+      document.body.style.overflow = '';
+      parents.forEach(p => p.classList.remove('ios-fullscreen-parent'));
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      parents.forEach(p => p.classList.remove('ios-fullscreen-parent'));
+    };
+  }, [isFullscreen]);
+
   const handleResetCamera = () => {
     setResetTrigger(prev => prev + 1);
   };
@@ -400,6 +426,18 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
           </div>
         )}
 
+        {/* Mobile "Done Exploring / Enable Scroll" Button */}
+        {isInteracting && !isFullscreen && (
+          <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsInteracting(false); }}
+              className="bg-red-500/90 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full shadow-2xl border border-white/20 flex items-center gap-2 hover:bg-red-400 transition-transform active:scale-95 animate-bounce shadow-red-500/20"
+            >
+              <Lock className="w-3.5 h-3.5" /> Stop & Scroll
+            </button>
+          </div>
+        )}
+
         {/* Watermark Overlay (Security & Branding) */}
         <div className="absolute top-3 left-3 sm:top-6 sm:left-6 pointer-events-none select-none flex flex-col gap-1 opacity-60">
           <div className="flex items-center gap-1.5 text-[10px] sm:text-xs tracking-widest text-slate-400 font-semibold uppercase">
@@ -430,17 +468,6 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
           >
             <Video className="w-4 h-4" />
           </button>
-
-          {/* Lock Interaction (Done) */}
-          {isInteracting && !isFullscreen && (
-            <button 
-              onClick={(e) => { e.stopPropagation(); setIsInteracting(false); }} 
-              title="Lock Viewer to Scroll Page" 
-              className="p-2 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors animate-pulse"
-            >
-              <Lock className="w-4 h-4" />
-            </button>
-          )}
 
           {/* Auto Rotate */}
           <button 
