@@ -2,7 +2,7 @@ import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { Canvas, useLoader, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, useFBX, Center, Html, useProgress } from '@react-three/drei';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
-import { Maximize2, Minimize2, RotateCw, Shield, Sliders, Sun, Video, Hand } from 'lucide-react';
+import { Maximize2, Minimize2, RotateCw, Shield, Sliders, Sun, Video, Hand, Lock } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://model-send-to-client.onrender.com';
 
@@ -348,8 +348,8 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
   return (
     <div 
       ref={containerRef} 
-      className={`relative w-full rounded-2xl overflow-hidden glass-panel h-[380px] sm:h-[480px] md:h-[600px] border border-white/5 shadow-2xl flex flex-col ${
-        isFullscreen ? 'w-screen h-screen rounded-none border-none' : ''
+      className={`w-full overflow-hidden glass-panel flex flex-col transition-all duration-300 ${
+        isFullscreen ? 'fixed inset-0 z-[9999] w-screen h-[100dvh] rounded-none border-none bg-slate-950' : 'relative rounded-2xl h-[380px] sm:h-[480px] md:h-[600px] border border-white/5 shadow-2xl'
       }`}
     >
       {/* 3D Canvas */}
@@ -430,6 +430,17 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
           >
             <Video className="w-4 h-4" />
           </button>
+
+          {/* Lock Interaction (Done) */}
+          {isInteracting && !isFullscreen && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setIsInteracting(false); }} 
+              title="Lock Viewer to Scroll Page" 
+              className="p-2 rounded-full bg-red-500/20 text-red-400 hover:bg-red-500/30 transition-colors animate-pulse"
+            >
+              <Lock className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Auto Rotate */}
           <button 
