@@ -601,72 +601,72 @@ export default function Dashboard() {
         {activeTab === 'dashboard' && (
           <>
         {/* Stats Grid */}
-        <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <section className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-4">
           {/* Card 1: Total Models */}
-          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
-            <div className="w-12 h-12 shrink-0 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+          <div className="glass-panel p-4 sm:p-5 rounded-2xl flex items-center gap-3 sm:gap-4 border border-white/5 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
               <Box className="w-5 h-5 text-blue-400" />
             </div>
-            <div>
-              <div className="text-xl lg:text-2xl font-black text-white">{stats?.totalModels ?? 0}</div>
-              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Total Models</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg lg:text-2xl font-black text-white truncate">{stats?.totalModels ?? 0}</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight truncate">Total Models</div>
             </div>
           </div>
 
           {/* Card 2: Storage Used */}
-          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
-            <div className="w-12 h-12 shrink-0 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+          <div className="glass-panel p-4 sm:p-5 rounded-2xl flex items-center gap-3 sm:gap-4 border border-white/5 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
               <HardDrive className="w-5 h-5 text-indigo-400" />
             </div>
-            <div>
-              <div className="text-xl lg:text-2xl font-black text-white">{formatBytes(stats?.storageUsed ?? 0)}</div>
-              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Storage Used</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg lg:text-2xl font-black text-white truncate">{formatBytes(stats?.storageUsed ?? 0)}</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight truncate">Storage Used</div>
             </div>
           </div>
 
           {/* Card 3: Total Shares */}
-          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
-            <div className="w-12 h-12 shrink-0 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+          <div className="glass-panel p-4 sm:p-5 rounded-2xl flex items-center gap-3 sm:gap-4 border border-white/5 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
               <LinkIcon className="w-5 h-5 text-purple-400" />
             </div>
-            <div>
-              <div className="text-xl lg:text-2xl font-black text-white">{stats?.totalShares ?? 0}</div>
-              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Active Shares</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg lg:text-2xl font-black text-white truncate">{stats?.totalShares ?? 0}</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight truncate">Active Shares</div>
             </div>
           </div>
 
           {/* Card 4: Total Views */}
-          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
-            <div className="w-12 h-12 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+          <div className="glass-panel p-4 sm:p-5 rounded-2xl flex items-center gap-3 sm:gap-4 border border-white/5 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
               <Eye className="w-5 h-5 text-emerald-400" />
             </div>
-            <div>
-              <div className="text-xl lg:text-2xl font-black text-white">{stats?.totalViews ?? 0}</div>
-              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Total Views</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg lg:text-2xl font-black text-white truncate">{stats?.totalViews ?? 0}</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight truncate">Total Views</div>
             </div>
           </div>
 
           {/* Card 5: Avg Time Spent */}
-          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
-            <div className="w-12 h-12 shrink-0 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+          <div className="glass-panel p-4 sm:p-5 rounded-2xl flex items-center gap-3 sm:gap-4 border border-white/5 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
               <Calendar className="w-5 h-5 text-amber-400" />
             </div>
-            <div>
-              <div className="text-xl lg:text-2xl font-black text-white">
+            <div className="min-w-0 flex-1">
+              <div className="text-lg lg:text-2xl font-black text-white truncate">
                 {stats?.totalViews ? Math.round((stats?.totalTimeSpentSeconds || 0) / stats.totalViews) + 's' : '0s'}
               </div>
-              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Avg Time/View</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight truncate">Avg Time/View</div>
             </div>
           </div>
 
           {/* Card 6: Interactions */}
-          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
-            <div className="w-12 h-12 shrink-0 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+          <div className="glass-panel p-4 sm:p-5 rounded-2xl flex items-center gap-3 sm:gap-4 border border-white/5 min-w-0">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
               <User className="w-5 h-5 text-pink-400" />
             </div>
-            <div>
-              <div className="text-xl lg:text-2xl font-black text-white">{stats?.totalInteractions ?? 0}</div>
-              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Interactions</div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg lg:text-2xl font-black text-white truncate">{stats?.totalInteractions ?? 0}</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight truncate">Interactions</div>
             </div>
           </div>
         </section>
