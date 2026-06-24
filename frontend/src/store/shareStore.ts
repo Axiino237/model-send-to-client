@@ -139,8 +139,13 @@ export const useShareStore = create<ShareStore>((set) => ({
 
   logViewAnalytics: async (shareId: string) => {
     try {
-      const osMatch = navigator.userAgent.match(/(Windows NT|Mac OS X|Linux|Android|iOS|iPhone|iPad)/);
-      const os = osMatch ? osMatch[0] : 'Unknown';
+      let os = 'Unknown';
+      const ua = navigator.userAgent;
+      if (/Android/i.test(ua)) os = 'Android';
+      else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
+      else if (/Windows NT/i.test(ua)) os = 'Windows';
+      else if (/Mac OS X/i.test(ua)) os = 'MacOS';
+      else if (/Linux/i.test(ua)) os = 'Linux';
       const screenSize = `${window.innerWidth}x${window.innerHeight}`;
       const referrer = document.referrer || null;
 
