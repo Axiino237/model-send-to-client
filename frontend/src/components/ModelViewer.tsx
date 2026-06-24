@@ -2,7 +2,7 @@ import React, { Suspense, useState, useRef, useEffect } from 'react';
 import { Canvas, useLoader, useThree } from '@react-three/fiber';
 import { OrbitControls, useGLTF, useFBX, Center, Html, useProgress } from '@react-three/drei';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
-import { Maximize2, Minimize2, RotateCw, Shield, Sliders, Sun, Video } from 'lucide-react';
+import { Maximize2, Minimize2, RotateCw, Shield, Sliders, Sun, Video, Hand } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://model-send-to-client.onrender.com';
 
@@ -143,6 +143,7 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
   const [autoRotate, setAutoRotate] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isInteracting, setIsInteracting] = useState(false);
   
   // Lighting controls
   const [ambientIntensity, setAmbientIntensity] = useState(0.8);
@@ -158,21 +159,51 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const toggleFullscreen = () => {
+  const toggleFullscreen = async () => {
     if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true));
+    if (!isFullscreen) {
+      try {
+        if (containerRef.current.requestFullscreen) {
+          await containerRef.current.requestFullscreen();
+        } else if ((containerRef.current as any).webkitRequestFullscreen) {
+          await (containerRef.current as any).webkitRequestFullscreen();
+        }
+      } catch (e) {
+        console.warn('Fullscreen API failed, using CSS fallback', e);
+      } finally {
+        setIsFullscreen(true);
+        setIsInteracting(true);
+      }
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false));
+      try {
+        if (document.exitFullscreen && document.fullscreenElement) {
+          await document.exitFullscreen();
+        } else if ((document as any).webkitExitFullscreen && (document as any).webkitFullscreenElement) {
+          await (document as any).webkitExitFullscreen();
+        }
+      } catch (e) {
+        console.warn('Exit Fullscreen API failed, using CSS fallback', e);
+      } finally {
+        setIsFullscreen(false);
+      }
     }
   };
 
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+      if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+        setIsFullscreen(true);
+        setIsInteracting(true);
+      } else {
+        setIsFullscreen(false);
+      }
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
   }, []);
 
   const handleResetCamera = () => {
@@ -350,10 +381,24 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
               autoRotate={autoRotate}
               autoRotateSpeed={2.0}
               makeDefault
+              enabled={isInteracting || isFullscreen}
             />
             <CameraController resetTrigger={resetTrigger} />
           </Canvas>
         </ErrorBoundary>
+
+        {/* Interaction Overlay for Mobile Scrolling */}
+        {!isInteracting && !isFullscreen && !downloadLoading && !downloadError && (
+          <div 
+            className="absolute inset-0 z-20 flex items-center justify-center bg-transparent cursor-pointer"
+            onClick={() => setIsInteracting(true)}
+          >
+            <div className="bg-slate-900/80 backdrop-blur-md px-6 py-3 rounded-full border border-white/10 shadow-2xl flex items-center gap-2.5 transform transition-transform hover:scale-105 animate-pulse mt-32">
+              <Hand size={18} className="text-blue-400" />
+              <span className="text-white text-sm font-medium tracking-wide">Tap to Interact</span>
+            </div>
+          </div>
+        )}
 
         {/* Watermark Overlay (Security & Branding) */}
         <div className="absolute top-3 left-3 sm:top-6 sm:left-6 pointer-events-none select-none flex flex-col gap-1 opacity-60">
