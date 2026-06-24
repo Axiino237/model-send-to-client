@@ -19,7 +19,7 @@ export default function ShareView() {
   const {
     activeShare, unlockedFileUrl, unlockedDescription, unlockedPhotos, unlockedAttachments,
     unlockedModelFiles, unlockedVideos, loading, error,
-    fetchShareMeta, unlockShare, logViewAnalytics, clear
+    fetchShareMeta, unlockShare, logViewAnalytics, updateAnalyticsMetrics, clear
   } = useShareStore();
 
   const [password, setPassword] = useState('');
@@ -27,12 +27,20 @@ export default function ShareView() {
   const [unlocking, setUnlocking] = useState(false);
   const [clientName, setClientName] = useState('');
   const [hasLoggedView, setHasLoggedView] = useState(false);
+  const [analyticsId, setAnalyticsId] = useState<string | null>(null);
 
   const [_activeTab, setActiveTab] = useState<'3d' | 'photos'>('3d');
   const [activePhotoIndex, setActivePhotoIndex] = useState(0);
   const [imageLoading, setImageLoading] = useState(true);
   const [isWindowBlurred, setIsWindowBlurred] = useState(false);
   const [activeModelIndex, setActiveModelIndex] = useState(0);
+
+  const timeSpentRef = useRef(0);
+  const interactionsRef = useRef(0);
+
+  const handleInteraction = () => {
+    interactionsRef.current += 1;
+  };
 
   const isUnlocked = !!(
     unlockedFileUrl ||
@@ -119,10 +127,34 @@ export default function ShareView() {
 
   useEffect(() => {
     if (activeShare && isUnlocked && !hasLoggedView) {
-      logViewAnalytics(activeShare.id);
+      const storageKey = `viewed_share_${activeShare.id}`;
+      const existingAnalyticsId = localStorage.getItem(storageKey);
+      
+      if (!existingAnalyticsId || existingAnalyticsId === 'true') {
+        logViewAnalytics(activeShare.id).then((id) => {
+          if (id) {
+            localStorage.setItem(storageKey, id);
+            setAnalyticsId(id);
+          }
+        });
+      } else {
+        setAnalyticsId(existingAnalyticsId);
+      }
       setHasLoggedView(true);
     }
   }, [activeShare, isUnlocked, hasLoggedView, logViewAnalytics]);
+
+  useEffect(() => {
+    if (!analyticsId || isWindowBlurred) return;
+
+    const timer = setInterval(() => {
+      timeSpentRef.current += 5;
+      updateAnalyticsMetrics(analyticsId, 5, interactionsRef.current);
+      interactionsRef.current = 0; // reset interactions after syncing
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, [analyticsId, isWindowBlurred, updateAnalyticsMetrics]);
 
   useEffect(() => {
     if (activeShare && !unlockedFileUrl && unlockedPhotos.length > 0) {
@@ -365,6 +397,11 @@ export default function ShareView() {
     <div 
       className="min-h-screen bg-slate-950 text-slate-100 flex flex-col p-4 md:p-8 relative overflow-x-hidden select-none"
       onContextMenu={(e) => e.preventDefault()}
+      onMouseMove={handleInteraction}
+      onTouchMove={handleInteraction}
+      onClick={handleInteraction}
+      onWheel={handleInteraction}
+      onKeyDown={handleInteraction}
     >
       <style>{`
         @media print {

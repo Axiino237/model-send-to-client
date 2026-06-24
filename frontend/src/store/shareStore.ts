@@ -76,7 +76,8 @@ interface ShareStore {
   
   fetchShareMeta: (token: string) => Promise<void>;
   unlockShare: (token: string, password?: string) => Promise<void>;
-  logViewAnalytics: (shareId: string) => Promise<void>;
+  logViewAnalytics: (shareId: string) => Promise<string | void>;
+  updateAnalyticsMetrics: (analyticsId: string, timeSpentSeconds: number, interactions: number) => Promise<void>;
   createShareLink: (modelId: string, password?: string, expiresInDays?: number, maxViews?: number) => Promise<any>;
   deleteShareLink: (shareId: string) => Promise<void>;
   resetShareViews: (shareId: string) => Promise<void>;
@@ -138,11 +139,29 @@ export const useShareStore = create<ShareStore>((set) => ({
 
   logViewAnalytics: async (shareId: string) => {
     try {
-      await apiFetch(`/analytics/log/${shareId}`, {
+      const osMatch = navigator.userAgent.match(/(Windows NT|Mac OS X|Linux|Android|iOS|iPhone|iPad)/);
+      const os = osMatch ? osMatch[0] : 'Unknown';
+      const screenSize = `${window.innerWidth}x${window.innerHeight}`;
+      const referrer = document.referrer || null;
+
+      const response = await apiFetch(`/analytics/log/${shareId}`, {
         method: 'POST',
+        body: JSON.stringify({ os, screenSize, referrer })
       });
+      return response.id;
     } catch (err) {
       console.error('Failed to log view analytics', err);
+    }
+  },
+
+  updateAnalyticsMetrics: async (analyticsId: string, timeSpentSeconds: number, interactions: number) => {
+    try {
+      await apiFetch(`/analytics/log/${analyticsId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ timeSpentSeconds, interactions })
+      });
+    } catch (err) {
+      console.error('Failed to update analytics metrics', err);
     }
   },
 

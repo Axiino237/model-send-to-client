@@ -209,7 +209,7 @@ export class ModelsService {
     }
   }
 
-  async getModels(user: { id: string; role: string }, search?: string) {
+  async getModels(user: { id: string; role: string }, search?: string, page: number = 1, limit: number = 10) {
     const where: any = {};
     
     if (user.role !== 'ADMIN') {
@@ -222,9 +222,13 @@ export class ModelsService {
       };
     }
 
+    const totalCount = await this.prisma.model.count({ where });
+
     const models = await this.prisma.model.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
       include: {
         shares: {
           select: {
@@ -234,6 +238,12 @@ export class ModelsService {
             maxViews: true,
             views: true,
             passwordPlain: true,
+            analytics: {
+              select: {
+                device: true,
+                viewedAt: true,
+              }
+            }
           },
         },
         photos: true,
@@ -243,7 +253,7 @@ export class ModelsService {
       },
     });
 
-    return await Promise.all(
+    const parsedModels = await Promise.all(
       models.map(async (model) => {
         const downloadUrl = model.fileUrl ? await this.storage.getDownloadUrl(model.fileUrl) : null;
         
@@ -298,6 +308,14 @@ export class ModelsService {
         };
       })
     );
+
+    return {
+      data: parsedModels,
+      total: totalCount,
+      page,
+      limit,
+      totalPages: Math.ceil(totalCount / limit)
+    };
   }
 
   async renameModel(user: { id: string; role: string }, modelId: string, name: string) {

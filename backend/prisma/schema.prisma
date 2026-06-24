@@ -1,5 +1,5 @@
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -55,14 +55,21 @@ model Share {
 }
 
 model Analytics {
-  id        String   @id @default(uuid())
-  shareId   String   @map("share_id")
-  ip        String?
-  country   String?
-  device    String?
-  browser   String?
-  viewedAt  DateTime @default(now()) @map("viewed_at")
-  share     Share    @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  id               String   @id @default(uuid())
+  shareId          String   @map("share_id")
+  ip               String?
+  country          String?
+  city             String?
+  state            String?
+  device           String?
+  browser          String?
+  os               String?
+  screenSize       String?  @map("screen_size")
+  referrer         String?
+  timeSpentSeconds Int      @default(0) @map("time_spent_seconds")
+  interactions     Int      @default(0)
+  viewedAt         DateTime @default(now()) @map("viewed_at")
+  share            Share    @relation(fields: [shareId], references: [id], onDelete: Cascade)
 
   @@map("analytics")
 }

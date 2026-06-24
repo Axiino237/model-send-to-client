@@ -6,9 +6,9 @@ import type { Model } from '../store/modelStore';
 import { useShareStore } from '../store/shareStore';
 import {
   LogOut, Plus, Search, Trash2, Edit2, Share2, Copy, Check,
-  HardDrive, Link as LinkIcon, Eye, EyeOff, Box, RefreshCw, Layers, Lock, AlertTriangle
+  HardDrive, Link as LinkIcon, Eye, EyeOff, Box, RefreshCw, Layers, Lock, AlertTriangle, Calendar, User, BarChart2, Settings
 } from 'lucide-react';
-import { Line, Doughnut } from 'react-chartjs-2';
+import { Line, Doughnut, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,7 +18,8 @@ import {
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  BarElement
 } from 'chart.js';
 
 ChartJS.register(
@@ -29,21 +30,29 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  ArcElement
+  ArcElement,
+  BarElement
 );
 
 export default function Dashboard() {
   const { user, logout, isAuthenticated, initialize } = useAuthStore();
   const {
-    models, stats, dailyViews, devices, loading, error,
+    models, modelsTotalCount, stats, dailyViews, devices, browsers, os, referrers, recentViews, recentViewsTotalCount, loading, error,
     fetchModels, fetchDashboardData, uploadModel, deleteModel, updateModel
   } = useModelStore();
   const { createShareLink, deleteShareLink, resetShareViews } = useShareStore();
 
   const navigate = useNavigate();
 
+  // Tab State
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'projects' | 'settings'>('dashboard');
+
   // Search & Modals state
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const modelsPerPage = 10;
+  const [recentViewsPage, setRecentViewsPage] = useState(1);
+  const recentViewsPerPage = 10;
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
   const [uploadName, setUploadName] = useState('');
@@ -142,6 +151,9 @@ export default function Dashboard() {
     }
   }, [isUploadOpen, editingModel]);
 
+  const [timeRange, setTimeRange] = useState('7days');
+  const [selectedAnalyticsModelId, setSelectedAnalyticsModelId] = useState('');
+
   useEffect(() => {
     initialize();
   }, [initialize]);
@@ -150,15 +162,15 @@ export default function Dashboard() {
     if (!isAuthenticated) {
       navigate('/login');
     } else {
-      fetchModels();
-      fetchDashboardData();
+      fetchModels(search, currentPage, modelsPerPage);
+      fetchDashboardData(timeRange, selectedAnalyticsModelId, recentViewsPage, recentViewsPerPage);
     }
-  }, [isAuthenticated, navigate, fetchModels, fetchDashboardData]);
+  }, [isAuthenticated, navigate, fetchModels, fetchDashboardData, timeRange, selectedAnalyticsModelId, search, currentPage, recentViewsPage]);
 
   // Handle Search
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearch(e.target.value);
-    fetchModels(e.target.value);
+    setCurrentPage(1);
   };
 
   // Upload handler
@@ -464,7 +476,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col relative overflow-hidden">
+    <div className="h-screen bg-slate-950 text-slate-100 flex overflow-hidden relative">
       {/* Toast Notification */}
       {toast && (
         <div
@@ -486,85 +498,175 @@ export default function Dashboard() {
           <button onClick={() => setToast(null)} className="ml-1 text-slate-500 hover:text-white cursor-pointer">✕</button>
         </div>
       )}
-      {/* Background radial overlays */}
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-blue-600/5 blur-[120px] pointer-events-none"></div>
-      <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full bg-indigo-600/5 blur-[120px] pointer-events-none"></div>
 
-      {/* Header bar */}
-      <header className="glass-panel border-b border-white/5 px-6 py-4 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-              <Box className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-extrabold tracking-tight text-white leading-none">Insight3D</h1>
-              <span className="text-[10px] uppercase font-bold text-blue-400 tracking-widest">{user?.role} Portal</span>
-            </div>
+      {/* Sidebar */}
+      <aside className="w-64 glass-panel border-r border-white/5 hidden md:flex flex-col z-40 relative shadow-2xl shadow-black/50">
+        <div className="px-6 py-8 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <Box className="w-5 h-5 text-white" />
           </div>
-
-          <div className="flex items-center gap-4">
-            <div className="text-right hidden sm:block">
-              <div className="text-sm font-semibold text-white">{user?.name}</div>
-              <div className="text-xs text-slate-400">{user?.email}</div>
-            </div>
-            <button
-              onClick={logout}
-              className="p-2.5 rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 border border-white/5 hover:border-red-500/20 transition-all duration-200 cursor-pointer"
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+          <div>
+            <h1 className="text-xl font-extrabold tracking-tight text-white leading-none">Insight3D</h1>
+            <span className="text-[10px] uppercase font-bold text-blue-400 tracking-widest">{user?.role} Portal</span>
           </div>
         </div>
-      </header>
+        
+        <nav className="flex-1 px-4 py-6 flex flex-col gap-2">
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all cursor-pointer ${activeTab === 'dashboard' ? 'bg-blue-500/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5 group'}`}
+          >
+            <BarChart2 className={`w-5 h-5 ${activeTab === 'dashboard' ? '' : 'group-hover:text-white transition-colors'}`} />
+            Dashboard
+          </button>
+          <button 
+            onClick={() => setActiveTab('projects')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all cursor-pointer ${activeTab === 'projects' ? 'bg-blue-500/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5 group'}`}
+          >
+            <Plus className={`w-5 h-5 ${activeTab === 'projects' ? '' : 'group-hover:text-white transition-colors'}`} />
+            Create Project
+          </button>
+          <button 
+            onClick={() => setActiveTab('settings')}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl font-semibold transition-all cursor-pointer ${activeTab === 'settings' ? 'bg-blue-500/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5 group'}`}
+          >
+            <Settings className={`w-5 h-5 ${activeTab === 'settings' ? '' : 'group-hover:text-white transition-colors'}`} />
+            Settings
+          </button>
+        </nav>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8 flex flex-col gap-8 z-10">
+        <div className="p-4 border-t border-white/5 mt-auto">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 mb-4 border border-white/5 shadow-inner">
+             <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center shrink-0">
+               <User className="w-4 h-4 text-indigo-400" />
+             </div>
+             <div className="overflow-hidden">
+               <div className="text-sm font-semibold text-white truncate">{user?.name}</div>
+               <div className="text-[10px] text-slate-400 truncate">{user?.email}</div>
+             </div>
+          </div>
+          <button
+            onClick={logout}
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl hover:bg-red-500/10 text-slate-400 hover:text-red-400 transition-all font-semibold cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </button>
+        </div>
+      </aside>
 
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto custom-scrollbar z-10 relative">
+        {/* Background radial overlays inside main area */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-blue-600/5 blur-[120px] pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full bg-indigo-600/5 blur-[120px] pointer-events-none"></div>
+
+        {/* Mobile Header (only visible on small screens) */}
+        <header className="md:hidden glass-panel border-b border-white/5 px-6 py-4 sticky top-0 z-40 flex flex-col gap-4 backdrop-blur-md">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-3">
+               <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center">
+                 <Box className="w-4 h-4 text-white" />
+               </div>
+               <div>
+                 <h1 className="text-lg font-extrabold tracking-tight text-white leading-none">Insight3D</h1>
+               </div>
+            </div>
+            <button onClick={logout} className="p-2 text-slate-400 hover:text-red-400"><LogOut className="w-5 h-5" /></button>
+          </div>
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 hide-scrollbar">
+            <button 
+              onClick={() => setActiveTab('dashboard')}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${activeTab === 'dashboard' ? 'bg-blue-500/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              Dashboard
+            </button>
+            <button 
+              onClick={() => setActiveTab('projects')}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${activeTab === 'projects' ? 'bg-blue-500/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              Create Project
+            </button>
+            <button 
+              onClick={() => setActiveTab('settings')}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${activeTab === 'settings' ? 'bg-blue-500/10 text-blue-400' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              Settings
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 max-w-7xl w-full mx-auto px-6 py-8 flex flex-col gap-8 relative z-10">
+
+        {activeTab === 'dashboard' && (
+          <>
         {/* Stats Grid */}
-        <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {/* Card 1: Total Models */}
           <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+            <div className="w-12 h-12 shrink-0 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
               <Box className="w-5 h-5 text-blue-400" />
             </div>
             <div>
-              <div className="text-2xl font-black text-white">{stats?.totalModels ?? 0}</div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Models</div>
+              <div className="text-xl lg:text-2xl font-black text-white">{stats?.totalModels ?? 0}</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Total Models</div>
             </div>
           </div>
 
           {/* Card 2: Storage Used */}
           <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
-            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+            <div className="w-12 h-12 shrink-0 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
               <HardDrive className="w-5 h-5 text-indigo-400" />
             </div>
             <div>
-              <div className="text-2xl font-black text-white">{formatBytes(stats?.storageUsed ?? 0)}</div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Storage Used</div>
+              <div className="text-xl lg:text-2xl font-black text-white">{formatBytes(stats?.storageUsed ?? 0)}</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Storage Used</div>
             </div>
           </div>
 
           {/* Card 3: Total Shares */}
           <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
+            <div className="w-12 h-12 shrink-0 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
               <LinkIcon className="w-5 h-5 text-purple-400" />
             </div>
             <div>
-              <div className="text-2xl font-black text-white">{stats?.totalShares ?? 0}</div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Active Shares</div>
+              <div className="text-xl lg:text-2xl font-black text-white">{stats?.totalShares ?? 0}</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Active Shares</div>
             </div>
           </div>
 
           {/* Card 4: Total Views */}
           <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
-            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+            <div className="w-12 h-12 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
               <Eye className="w-5 h-5 text-emerald-400" />
             </div>
             <div>
-              <div className="text-2xl font-black text-white">{stats?.totalViews ?? 0}</div>
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Views</div>
+              <div className="text-xl lg:text-2xl font-black text-white">{stats?.totalViews ?? 0}</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Total Views</div>
+            </div>
+          </div>
+
+          {/* Card 5: Avg Time Spent */}
+          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
+            <div className="w-12 h-12 shrink-0 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+              <Calendar className="w-5 h-5 text-amber-400" />
+            </div>
+            <div>
+              <div className="text-xl lg:text-2xl font-black text-white">
+                {stats?.totalViews ? Math.round((stats?.totalTimeSpentSeconds || 0) / stats.totalViews) + 's' : '0s'}
+              </div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Avg Time/View</div>
+            </div>
+          </div>
+
+          {/* Card 6: Interactions */}
+          <div className="glass-panel p-5 rounded-2xl flex items-center gap-4 border border-white/5">
+            <div className="w-12 h-12 shrink-0 rounded-xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center">
+              <User className="w-5 h-5 text-pink-400" />
+            </div>
+            <div>
+              <div className="text-xl lg:text-2xl font-black text-white">{stats?.totalInteractions ?? 0}</div>
+              <div className="text-[9px] lg:text-[10px] uppercase tracking-wider text-slate-400 font-bold leading-tight">Interactions</div>
             </div>
           </div>
         </section>
@@ -574,7 +676,22 @@ export default function Dashboard() {
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Views Line Chart */}
             <div className="glass-panel p-5 rounded-3xl border border-white/5 md:col-span-2 h-[260px] flex flex-col">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">View Analytics (Last 7 Days)</h3>
+              <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">View Analytics ({timeRange === 'all' ? 'All Time' : timeRange === 'month' ? 'Last 30 Days' : timeRange === '7days' ? 'Last 7 Days' : 'Today'})</h3>
+                </div>
+                <div className="flex gap-1.5">
+                  {['today', '7days', 'month', 'all'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setTimeRange(r)}
+                      className={`text-[9px] px-2.5 py-1 rounded-md font-bold uppercase tracking-wider transition-colors ${timeRange === r ? 'bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]' : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white'}`}
+                    >
+                      {r === 'today' ? 'Today' : r === '7days' ? '7 Days' : r === 'month' ? 'Monthly' : 'All'}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="flex-1 relative min-h-0">
                 <Line data={lineChartData} options={lineChartOptions} />
               </div>
@@ -594,6 +711,234 @@ export default function Dashboard() {
           </section>
         )}
 
+        {/* OS, Browsers & Traffic Sources section */}
+        {stats && stats.totalViews > 0 && (
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* OS Breakdown */}
+            <div className="glass-panel p-5 rounded-3xl border border-white/5 h-[260px] flex flex-col">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Operating System</h3>
+              <div className="flex-1 relative min-h-0">
+                {os && os.length > 0 ? (
+                  <Doughnut data={doughnutData(os)} options={doughnutOptions} />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs text-slate-500">No OS logs available</div>
+                )}
+              </div>
+            </div>
+
+            {/* Browser Breakdown */}
+            <div className="glass-panel p-5 rounded-3xl border border-white/5 h-[260px] flex flex-col">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Browsers</h3>
+              <div className="flex-1 relative min-h-0">
+                {browsers && browsers.length > 0 ? (
+                  <Doughnut data={doughnutData(browsers)} options={doughnutOptions} />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs text-slate-500">No browser logs available</div>
+                )}
+              </div>
+            </div>
+
+            {/* Referrer Breakdown */}
+            <div className="glass-panel p-5 rounded-3xl border border-white/5 h-[260px] flex flex-col">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Traffic Sources</h3>
+              <div className="flex-1 relative min-h-0">
+                {referrers && referrers.length > 0 ? (
+                  <Doughnut data={doughnutData(referrers)} options={doughnutOptions} />
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs text-slate-500">No referrer logs available</div>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Hourly Distribution Graph */}
+        {stats && stats.totalViews > 0 && recentViews && recentViews.length > 0 && (
+          <section className="glass-panel p-5 rounded-3xl border border-white/5 flex flex-col mb-4 h-[300px]">
+            <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2 mb-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">View Activity by Time of Day</h3>
+              <select
+                className="bg-transparent border border-white/10 text-white text-xs rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-1.5"
+                value={selectedAnalyticsModelId}
+                onChange={(e) => setSelectedAnalyticsModelId(e.target.value)}
+              >
+                <option value="" className="bg-slate-900 text-slate-300">All Models</option>
+                {models.map((m: Model) => (
+                  <option key={m.id} value={m.id} className="bg-slate-900 text-slate-300">
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 relative min-h-0 overflow-x-auto overflow-y-hidden">
+              {(() => {
+                // Sort views by time ascending
+                const sortedViews = [...recentViews].sort((a: any, b: any) => new Date(a.viewedAt).getTime() - new Date(b.viewedAt).getTime());
+                
+                const minuteCounts = new Map<string, number>();
+                sortedViews.forEach((v: any) => {
+                  const d = new Date(v.viewedAt);
+                  const timeStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ', ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  minuteCounts.set(timeStr, (minuteCounts.get(timeStr) || 0) + 1);
+                });
+
+                const labels = Array.from(minuteCounts.keys());
+                const dataCounts = Array.from(minuteCounts.values());
+
+                // Calculate minimum width to prevent bars from getting squished (e.g. 40px per bar)
+                const minChartWidth = Math.max(100, labels.length * 40);
+
+                return (
+                  <div style={{ minWidth: `${minChartWidth}px`, height: '100%' }}>
+                    <Bar 
+                      data={{
+                        labels,
+                        datasets: [{
+                          label: 'Views',
+                          data: dataCounts,
+                          backgroundColor: 'rgba(245, 158, 11, 0.8)', // amber-500
+                          hoverBackgroundColor: '#fbbf24', // amber-400
+                          borderRadius: 4,
+                        }]
+                      }}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                          x: {
+                            grid: { display: false },
+                            ticks: { color: '#64748b', font: { size: 10 }, maxRotation: 45, minRotation: 45 }
+                          },
+                          y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.03)' },
+                            ticks: { 
+                              color: '#64748b', font: { size: 10 }, stepSize: 1
+                            }
+                          }
+                        },
+                        plugins: {
+                          legend: { display: false },
+                          tooltip: {
+                            backgroundColor: 'rgba(15, 15, 21, 0.95)',
+                            titleColor: '#fff',
+                            bodyColor: '#cbd5e1',
+                            borderColor: 'rgba(255,255,255,0.08)',
+                            borderWidth: 1,
+                            padding: 12,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                              title: (ctx: any) => `${ctx[0].label}`,
+                              label: (ctx: any) => `${ctx.raw} view${ctx.raw !== 1 ? 's' : ''}`
+                            }
+                          }
+                        }
+                      }}
+                    />
+                  </div>
+                );
+              })()}
+            </div>
+          </section>
+        )}
+
+        {/* Detailed Recent Views Table */}
+        {stats && stats.totalViews > 0 && recentViews && recentViews.length > 0 && (
+          <section className="glass-panel p-5 rounded-3xl border border-white/5 flex flex-col mb-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-4">Recent Views Details</h3>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm text-slate-300">
+                <thead className="text-xs uppercase bg-white/5 text-slate-400">
+                  <tr>
+                    <th className="px-4 py-3 font-medium rounded-tl-xl">Date & Time</th>
+                    <th className="px-4 py-3 font-medium">Model</th>
+                    <th className="px-4 py-3 font-medium">Location</th>
+                    <th className="px-4 py-3 font-medium">Device & OS</th>
+                    <th className="px-4 py-3 font-medium">Browser</th>
+                    <th className="px-4 py-3 font-medium">Time Spent</th>
+                    <th className="px-4 py-3 font-medium rounded-tr-xl">Interactions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {recentViews.map((view, i) => (
+                    <tr key={view.id || i} className="hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {new Date(view.viewedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}<br/>
+                        <span className="text-[10px] text-slate-500">{new Date(view.viewedAt).toLocaleTimeString()}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="block max-w-[150px] truncate" title={view.share?.model?.name || 'Unknown'}>
+                          {view.share?.model?.name || 'Unknown'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {view.city && view.state ? `${view.city}, ${view.state}` : (view.country || 'Unknown')}
+                      </td>
+                      <td className="px-4 py-3">
+                        {view.device || 'Desktop'} <span className="text-slate-500 text-xs">({view.os || 'Unknown OS'})</span>
+                      </td>
+                      <td className="px-4 py-3">{view.browser || 'Unknown'}</td>
+                      <td className="px-4 py-3">
+                        <span className="bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full text-xs font-medium">
+                          {view.timeSpentSeconds || 0}s
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="bg-pink-500/10 text-pink-400 px-2 py-0.5 rounded-full text-xs font-medium">
+                          {view.interactions || 0}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {recentViewsTotalCount > recentViewsPerPage && (
+                <div className="px-6 py-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 overflow-x-auto">
+                  <span className="text-xs text-slate-400 whitespace-nowrap">
+                    Showing {(recentViewsPage - 1) * recentViewsPerPage + 1} to {Math.min(recentViewsPage * recentViewsPerPage, recentViewsTotalCount)} of {recentViewsTotalCount} views
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setRecentViewsPage(p => Math.max(1, p - 1))}
+                      disabled={recentViewsPage === 1}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 text-slate-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Previous
+                    </button>
+                    <div className="flex gap-1 overflow-x-auto">
+                      {Array.from({ length: Math.ceil(recentViewsTotalCount / recentViewsPerPage) }, (_, i) => i + 1).map(pageNum => (
+                        <button
+                          key={pageNum}
+                          onClick={() => setRecentViewsPage(pageNum)}
+                          className={`w-7 h-7 shrink-0 rounded-lg text-xs font-bold transition-colors ${
+                            recentViewsPage === pageNum 
+                              ? 'bg-blue-600 text-white' 
+                              : 'bg-transparent text-slate-400 hover:bg-white/10'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setRecentViewsPage(p => Math.min(Math.ceil(recentViewsTotalCount / recentViewsPerPage), p + 1))}
+                      disabled={recentViewsPage === Math.ceil(recentViewsTotalCount / recentViewsPerPage)}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 text-slate-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+          </>
+        )}
+
+        {activeTab === 'projects' && (
+          <>
         {/* Model Management Section */}
         <section className="flex flex-col gap-5">
           <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -657,6 +1002,7 @@ export default function Dashboard() {
                       <th className="py-4 px-6">Model Info</th>
                       <th className="py-4 px-6">File Size</th>
                       <th className="py-4 px-6">Created At</th>
+                      <th className="py-4 px-6">Total Views</th>
                       <th className="py-4 px-6">Active Share Links</th>
                       <th className="py-4 px-6 text-right">Actions</th>
                     </tr>
@@ -736,11 +1082,56 @@ export default function Dashboard() {
 
                         {/* Date */}
                         <td className="py-4 px-6 text-xs text-slate-400">
-                          {new Date(model.createdAt).toLocaleDateString(undefined, {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric'
-                          })}
+                          <div className="flex flex-col">
+                            <span>
+                              {new Date(model.createdAt).toLocaleDateString(undefined, {
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric'
+                              })}
+                            </span>
+                            <span className="text-[10px] text-slate-500 mt-0.5">
+                              {new Date(model.createdAt).toLocaleTimeString(undefined, {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* Total Views Breakdown */}
+                        <td className="py-4 px-6">
+                          {(() => {
+                            if (!model.shares || model.shares.length === 0) return <span className="text-xs text-slate-500 italic">0 Views</span>;
+                            let total = 0;
+                            let mobile = 0;
+                            let desktop = 0;
+                            
+                            model.shares.forEach((share: any) => {
+                              total += (share.views || 0);
+                              if (share.analytics) {
+                                share.analytics.forEach((a: any) => {
+                                  const d = (a.device || '').toLowerCase();
+                                  if (d.includes('mobile') || d.includes('android') || d.includes('iphone')) mobile++;
+                                  else desktop++;
+                                });
+                              }
+                            });
+
+                            if (total === 0) return <span className="text-xs text-slate-500 italic">0 Views</span>;
+
+                            return (
+                              <div className="flex flex-col gap-1">
+                                <span className="text-sm font-bold text-white">{total} Total</span>
+                                {(mobile > 0 || desktop > 0) && (
+                                  <div className="flex gap-2 text-[10px] text-slate-400 font-medium">
+                                    {mobile > 0 && <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>{mobile} Mobile</span>}
+                                    {desktop > 0 && <span className="flex items-center gap-0.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>{desktop} Desktop</span>}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
 
                         {/* Share links details */}
@@ -801,8 +1192,61 @@ export default function Dashboard() {
                 </table>
               </div>
             )}
+            {modelsTotalCount > modelsPerPage && (
+              <div className="px-6 py-4 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4 overflow-x-auto">
+                <span className="text-xs text-slate-400 whitespace-nowrap">
+                  Showing {(currentPage - 1) * modelsPerPage + 1} to {Math.min(currentPage * modelsPerPage, modelsTotalCount)} of {modelsTotalCount} models
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 text-slate-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Previous
+                  </button>
+                  <div className="flex gap-1 overflow-x-auto">
+                    {Array.from({ length: Math.ceil(modelsTotalCount / modelsPerPage) }, (_, i) => i + 1).map(pageNum => (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-7 h-7 shrink-0 rounded-lg text-xs font-bold transition-colors ${
+                          currentPage === pageNum 
+                            ? 'bg-blue-600 text-white' 
+                            : 'bg-transparent text-slate-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(modelsTotalCount / modelsPerPage), p + 1))}
+                    disabled={currentPage === Math.ceil(modelsTotalCount / modelsPerPage)}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 text-slate-300 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </section>
+          </>
+        )}
+
+        {activeTab === 'settings' && (
+          <section className="flex flex-col gap-5">
+            <div>
+              <h2 className="text-xl font-bold text-white">Settings</h2>
+              <p className="text-xs text-slate-400 mt-0.5">Manage your preferences</p>
+            </div>
+            <div className="glass-panel p-8 rounded-3xl border border-white/5 text-center flex flex-col items-center justify-center min-h-[300px]">
+               <Settings className="w-12 h-12 text-slate-600 mb-4" />
+               <p className="text-slate-400 font-semibold">Settings page coming soon...</p>
+            </div>
+          </section>
+        )}
       </main>
 
       {/* MODAL 1: Upload Model (Full-screen Notepad Workspace) */}
@@ -1672,6 +2116,24 @@ export default function Dashboard() {
                         </div>
                       )}
 
+                      {/* Analytics Times Section */}
+                      {share.analytics && share.analytics.length > 0 && (
+                        <div className="mt-2 text-xs">
+                          <div className="text-slate-400 mb-1 font-semibold flex items-center gap-1"><Eye className="w-3.5 h-3.5" /> Recent Views (Time):</div>
+                          <div className="max-h-24 overflow-y-auto space-y-1 rounded border border-white/5 p-1 bg-black/20">
+                            {share.analytics.slice().reverse().map((a, i) => {
+                              const d = new Date(a.viewedAt);
+                              return (
+                                <div key={i} className="flex justify-between text-slate-300 px-2 py-1 rounded bg-white/5">
+                                  <span>{d.toLocaleDateString()}</span>
+                                  <span className="text-amber-300 font-mono">{d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Action buttons (Copy link) */}
                       <div className="flex items-center gap-2">
                         <button
@@ -1795,7 +2257,7 @@ export default function Dashboard() {
         </div>
       )}
       {/* axiion.com attribution */}
-      <div className="w-full flex justify-center py-4 z-10">
+      <div className="w-full flex justify-center py-4 z-10 mt-auto">
         <a
           href="https://www.axiino.com"
           target="_blank"
@@ -1807,6 +2269,7 @@ export default function Dashboard() {
             Developed by <span className="text-blue-400 group-hover:text-blue-300 font-semibold">axiino</span>
           </span>
         </a>
+      </div>
       </div>
     </div>
   );

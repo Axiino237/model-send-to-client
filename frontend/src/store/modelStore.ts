@@ -8,6 +8,7 @@ export interface ShareConfig {
   maxViews: number | null;
   views: number;
   passwordPlain?: string | null;
+  analytics?: { viewedAt: string }[];
 }
 
 export interface ModelFileDetails {
@@ -44,24 +45,29 @@ export interface Model {
   videos?: VideoDetails[];
 }
 
-interface DashboardStats {
-  totalModels: number;
-  totalShares: number;
-  totalViews: number;
-  storageUsed: number;
-}
-
 interface ModelStore {
   models: Model[];
-  stats: DashboardStats | null;
+  modelsTotalCount: number;
+  stats: {
+    totalModels: number;
+    totalShares: number;
+    totalViews: number;
+    storageUsed: number;
+    totalTimeSpentSeconds?: number;
+    totalInteractions?: number;
+  } | null;
   dailyViews: { date: string; count: number }[];
   devices: { name: string; count: number }[];
   browsers: { name: string; count: number }[];
+  os: { name: string; count: number }[];
+  referrers: { name: string; count: number }[];
+  recentViews: any[];
+  recentViewsTotalCount: number;
   loading: boolean;
   error: string | null;
-  
-  fetchModels: (search?: string) => Promise<void>;
-  fetchDashboardData: () => Promise<void>;
+
+  fetchModels: (search?: string, page?: number, limit?: number) => Promise<void>;
+  fetchDashboardData: (range?: string, modelId?: string, recentViewsPage?: number, recentViewsLimit?: number) => Promise<void>;
   uploadModel: (
     files: File[],
     name: string,
@@ -89,33 +95,47 @@ interface ModelStore {
 
 export const useModelStore = create<ModelStore>((set, get) => ({
   models: [],
+  modelsTotalCount: 0,
   stats: null,
   dailyViews: [],
   devices: [],
   browsers: [],
+  os: [],
+  referrers: [],
+  recentViews: [],
+  recentViewsTotalCount: 0,
   loading: false,
   error: null,
 
-  fetchModels: async (search?: string) => {
+  fetchModels: async (search?: string, page: number = 1, limit: number = 10) => {
     set({ loading: true, error: null });
     try {
-      const endpoint = search ? `/models?search=${encodeURIComponent(search)}` : '/models';
-      const models = await apiFetch(endpoint);
-      set({ models, loading: false });
+      let endpoint = `/models?page=${page}&limit=${limit}`;
+      if (search) {
+        endpoint += `&search=${encodeURIComponent(search)}`;
+      }
+      const response = await apiFetch(endpoint);
+      set({ models: response.data, modelsTotalCount: response.total, loading: false });
     } catch (err: any) {
       set({ error: err.message || 'Failed to fetch models', loading: false });
     }
   },
 
-  fetchDashboardData: async () => {
+  fetchDashboardData: async (range = '7days', modelId?: string, recentViewsPage = 1, recentViewsLimit = 10) => {
     set({ loading: true, error: null });
     try {
-      const data = await apiFetch('/analytics/dashboard');
+      let url = `/analytics/dashboard?range=${range}&recentViewsPage=${recentViewsPage}&recentViewsLimit=${recentViewsLimit}`;
+      if (modelId) url += `&modelId=${modelId}`;
+      const data = await apiFetch(url);
       set({
         stats: data.stats,
         dailyViews: data.dailyViews,
         devices: data.devices,
         browsers: data.browsers,
+        os: data.os || [],
+        referrers: data.referrers || [],
+        recentViews: data.recentViews,
+        recentViewsTotalCount: data.recentViewsTotalCount,
         loading: false,
       });
     } catch (err: any) {

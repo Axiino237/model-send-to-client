@@ -41,6 +41,9 @@ export class ModelsController {
         { name: 'videos', maxCount: 10 },
       ],
       {
+        limits: {
+          fileSize: 2000 * 1024 * 1024, // 2GB max file size
+        },
         storage: diskStorage({
           destination: (req, file, cb) => {
             const tempDir = path.join(process.cwd(), 'uploads', 'temp');
@@ -74,8 +77,15 @@ export class ModelsController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  async getModels(@Request() req, @Query('search') search: string) {
-    return this.modelsService.getModels(req.user, search);
+  async getModels(
+    @Request() req, 
+    @Query('search') search: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const pageNum = page ? parseInt(page, 10) : 1;
+    const limitNum = limit ? parseInt(limit, 10) : 10;
+    return this.modelsService.getModels(req.user, search, pageNum, limitNum);
   }
 
   @Patch(':id')
