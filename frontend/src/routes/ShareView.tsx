@@ -395,7 +395,7 @@ export default function ShareView() {
 
   return (
     <div 
-      className="min-h-screen bg-slate-950 text-slate-100 flex flex-col p-4 md:p-8 relative overflow-x-hidden select-none"
+      className="min-h-[100dvh] bg-slate-950 flex flex-col items-center justify-center p-2 sm:p-6 lg:p-12 relative overflow-x-hidden selection:bg-blue-500/30 font-sans"
       onContextMenu={(e) => e.preventDefault()}
       onMouseMove={handleInteraction}
       onTouchMove={handleInteraction}
@@ -421,9 +421,9 @@ export default function ShareView() {
       <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] rounded-full bg-indigo-600/10 blur-[130px] pointer-events-none animate-pulse"></div>
       <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] rounded-full bg-purple-600/5 blur-[100px] pointer-events-none"></div>
 
-      <div className="max-w-4xl w-full mx-auto flex-1 flex flex-col gap-6 z-10 justify-center">
+      <div className="max-w-4xl w-full mx-auto flex-1 flex flex-col gap-4 sm:gap-6 z-10 justify-center">
         {/* Header Panel */}
-        <header className="glass-panel border border-white/10 p-4 md:p-6 rounded-3xl backdrop-blur-xl shadow-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6 relative overflow-hidden transition-all duration-300 hover:border-white/15">
+        <header className="glass-panel border border-white/10 p-4 md:p-6 rounded-2xl md:rounded-3xl backdrop-blur-xl shadow-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6 relative overflow-hidden transition-all duration-300 hover:border-white/15">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
           <div className="flex items-center gap-4 z-10">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -467,10 +467,10 @@ export default function ShareView() {
         </header>
 
         {/* Stacked Content Sections (3D Model first, then Photos, Description, Attachments) */}
-        <div className="max-w-4xl w-full mx-auto flex flex-col gap-6">
+        <div className="max-w-4xl w-full mx-auto flex flex-col gap-4 sm:gap-6">
           {/* Section 1: 3D Model Viewer */}
           {((unlockedModelFiles && unlockedModelFiles.length > 0) || unlockedFileUrl) && (
-            <div className="flex flex-col gap-4 bg-slate-900/40 rounded-3xl border border-white/5 p-6 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:border-white/10 relative group">
+            <div className="flex flex-col gap-3 sm:gap-4 bg-slate-900/40 rounded-2xl sm:rounded-3xl border border-white/5 p-3 sm:p-6 backdrop-blur-xl shadow-2xl transition-all duration-300 hover:border-white/10 relative group">
               {/* Glowing effect inside container */}
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 opacity-50"></div>
 
@@ -506,7 +506,7 @@ export default function ShareView() {
               )}
 
               {unlockedModelFiles && unlockedModelFiles.length > 0 ? (
-                <div className="w-full min-h-[380px] sm:min-h-[480px] md:min-h-[520px] flex rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
+                <div className="w-full min-h-[420px] sm:min-h-[480px] md:min-h-[520px] flex rounded-xl sm:rounded-2xl overflow-hidden bg-black/50 border border-white/5 relative shadow-inner">
                   {/* Floating guide */}
                   <div className="hidden sm:flex absolute bottom-4 right-4 bg-black/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-xl text-[10px] text-slate-400 font-semibold z-10 pointer-events-none select-none items-center gap-1.5 shadow-xl">
                     <span>Orbit: Drag</span>
