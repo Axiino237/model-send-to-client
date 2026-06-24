@@ -149,9 +149,24 @@ export const useShareStore = create<ShareStore>((set) => ({
       const screenSize = `${window.innerWidth}x${window.innerHeight}`;
       const referrer = document.referrer || null;
 
+      let country = undefined;
+      let city = undefined;
+      let state = undefined;
+      try {
+        const geoRes = await fetch('https://ipapi.co/json/');
+        if (geoRes.ok) {
+          const geoData = await geoRes.json();
+          country = geoData.country_name;
+          city = geoData.city;
+          state = geoData.region;
+        }
+      } catch (e) {
+        console.warn('Could not fetch location data', e);
+      }
+
       const response = await apiFetch(`/analytics/log/${shareId}`, {
         method: 'POST',
-        body: JSON.stringify({ os, screenSize, referrer })
+        body: JSON.stringify({ os, screenSize, referrer, country, city, state })
       });
       return response.id;
     } catch (err) {

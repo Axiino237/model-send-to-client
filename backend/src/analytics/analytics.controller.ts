@@ -26,13 +26,13 @@ export class AnalyticsController {
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string,
     @Headers('cf-ipcountry') country?: string,
-    @Body() body?: { os?: string; screenSize?: string; referrer?: string; city?: string; state?: string }
+    @Body() body?: { os?: string; screenSize?: string; referrer?: string; country?: string; city?: string; state?: string }
   ) {
     return this.analyticsService.logView(
       shareId, 
       ip, 
       userAgent, 
-      country, 
+      body?.country || country, 
       body?.os, 
       body?.screenSize, 
       body?.referrer, 
