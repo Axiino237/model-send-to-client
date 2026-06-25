@@ -395,7 +395,7 @@ export default function ShareView() {
 
   return (
     <div 
-      className="min-h-[100dvh] bg-slate-950 flex flex-col items-center justify-center p-2 sm:p-6 lg:p-12 relative overflow-x-hidden selection:bg-blue-500/30 font-sans"
+      className="h-[100dvh] overflow-y-auto custom-scrollbar scroll-smooth bg-slate-950 flex flex-col items-center justify-start p-2 sm:p-6 lg:p-12 relative overflow-x-hidden selection:bg-blue-500/30 font-sans"
       onContextMenu={(e) => e.preventDefault()}
       onMouseMove={handleInteraction}
       onTouchMove={handleInteraction}
@@ -422,47 +422,58 @@ export default function ShareView() {
       <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] rounded-full bg-purple-600/5 blur-[100px] pointer-events-none"></div>
 
       <div className="max-w-4xl w-full mx-auto flex-1 flex flex-col gap-4 sm:gap-6 z-10 justify-center">
-        {/* Header Panel */}
-        <header className="glass-panel border border-white/10 p-4 md:p-6 rounded-2xl md:rounded-3xl backdrop-blur-xl shadow-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6 relative overflow-hidden transition-all duration-300 hover:border-white/15">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
-          <div className="flex items-center gap-4 z-10">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-              {unlockedFileUrl ? <Box className="w-6 h-6 text-white" /> : <Layers className="w-6 h-6 text-white" />}
+        {/* Header Panel - The First Step Solutions Navbar */}
+        <header className="glass-panel border border-white/5 p-2 pl-6 pr-2 rounded-full backdrop-blur-2xl shadow-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6 relative overflow-visible transition-all duration-300 bg-[#0a0a0e]/80">
+          {/* Logo Section */}
+          <div className="flex items-center gap-3 z-10 shrink-0">
+            <div className="w-8 h-8 relative flex items-center justify-center shrink-0">
+              {/* Origami bird logo SVG placeholder */}
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 drop-shadow-md">
+                <path d="M12 2L2 22L12 18L22 22L12 2Z" fill="url(#gradient-logo)"/>
+                <defs>
+                  <linearGradient id="gradient-logo" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+                    <stop stopColor="#00BFFF" />
+                    <stop offset="0.5" stopColor="#FF1493" />
+                    <stop offset="1" stopColor="#FF8C00" />
+                  </linearGradient>
+                </defs>
+              </svg>
             </div>
-            <div>
-              <h1 className="text-xl font-extrabold tracking-tight text-white leading-none mb-2">{activeShare.model.name}</h1>
-              <span className="text-[10px] uppercase font-bold text-blue-400 tracking-wider flex items-center gap-1">
-                <User className="w-3.5 h-3.5" /> Shared By: {activeShare.model.user.name}
-              </span>
+            <div className="text-white font-bold text-lg tracking-tight flex items-center gap-1.5 whitespace-nowrap">
+              <span>The</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500">First Step</span>
+              <span className="text-[#00e5ff]">Solutions</span>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 md:gap-4 z-10">
-            {activeShare.model.size && (
-              <div className="flex items-center gap-2 text-xs text-slate-300 font-semibold bg-white/5 border border-white/5 px-3.5 py-2 rounded-2xl shadow-inner">
-                <HardDrive className="w-4 h-4 text-indigo-400" /> {formatBytes(activeShare.model.size)}
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-xs text-slate-300 font-semibold bg-white/5 border border-white/5 px-3.5 py-2 rounded-2xl shadow-inner">
-              <Calendar className="w-4 h-4 text-purple-400" /> Shared: {' '}
-              {new Date(activeShare.createdAt).toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-              })}
-            </div>
+          {/* Navigation Links */}
+          <nav className="hidden lg:flex items-center gap-1 z-10">
+            <a href="#" className="px-5 py-2 rounded-full bg-[#1c1c24] text-white text-sm font-medium shadow-sm border border-white/5 transition-colors">Home</a>
+            <a href="#" className="px-5 py-2 text-slate-300 hover:text-white text-sm font-medium transition-colors rounded-full hover:bg-white/5">About</a>
+            <a href="#" className="px-5 py-2 text-slate-300 hover:text-white text-sm font-medium transition-colors rounded-full hover:bg-white/5">Services</a>
+            <a href="#" className="px-5 py-2 text-slate-300 hover:text-white text-sm font-medium transition-colors rounded-full hover:bg-white/5">Work</a>
+            <a href="#" className="px-5 py-2 text-slate-300 hover:text-white text-sm font-medium transition-colors rounded-full hover:bg-white/5">Contact</a>
+          </nav>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 z-10 shrink-0">
             {unlockedFileUrl && (
-              <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-4 w-full md:w-auto">
-                <input
-                  type="text"
-                  placeholder="Watermark name..."
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  className="glass-input px-3 py-2 rounded-xl text-xs w-full md:w-40 placeholder:text-slate-500 focus:border-blue-500/80"
-                  title="Add name to viewport watermark"
-                />
-              </div>
+              <input
+                type="text"
+                placeholder="Watermark name..."
+                value={clientName}
+                onChange={(e) => setClientName(e.target.value)}
+                className="hidden xl:block bg-black/40 border border-white/10 px-4 py-2 rounded-full text-xs w-36 text-white placeholder:text-slate-500 focus:border-[#00e5ff]/50 outline-none transition-colors"
+                title="Add name to viewport watermark"
+              />
             )}
+            <button className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border border-green-500/40 bg-gradient-to-b from-green-900/30 to-black/30 text-white text-sm font-medium transition-all hover:bg-green-900/40">
+              <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,1)]"></div>
+              Go to the Tree ↗
+            </button>
+            <button className="px-6 py-2 rounded-full bg-gradient-to-r from-orange-400 to-pink-500 text-white text-sm font-bold shadow-[0_4px_14px_rgba(236,72,153,0.3)] hover:shadow-[0_6px_20px_rgba(236,72,153,0.4)] hover:opacity-90 transition-all whitespace-nowrap">
+              Let's Talk
+            </button>
           </div>
         </header>
 
@@ -676,20 +687,30 @@ export default function ShareView() {
         </div>
       </div>
 
-      {/* axiion.com attribution */}
-      <div className="w-full flex justify-center py-6 z-10">
-        <a
-          href="https://www.axiino.com"
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/3 border border-white/8 hover:bg-white/6 hover:border-white/15 transition-all duration-200 group"
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 group-hover:bg-blue-300 transition-colors animate-pulse"></span>
-          <span className="text-[10px] text-slate-500 group-hover:text-slate-300 transition-colors font-medium tracking-wide">
-            Developed by <span className="text-blue-400 group-hover:text-blue-300 font-semibold">axiino</span>
-          </span>
-        </a>
-      </div>
+      {/* The First Step Solutions Footer */}
+      <footer className="w-full max-w-4xl mx-auto mt-12 mb-6 p-8 rounded-3xl bg-slate-900/40 border border-white/5 backdrop-blur-xl shadow-2xl relative z-10 flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="flex flex-col items-center md:items-start gap-3">
+          <div className="text-white font-bold text-lg tracking-tight flex items-center gap-1.5">
+            <span>The</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500">First Step</span>
+            <span className="text-[#00e5ff]">Solutions</span>
+          </div>
+          <p className="text-slate-400 text-xs text-center md:text-left max-w-xs leading-relaxed">
+            Flat No. 27, 1st Street, Kothari Nagar, Annai Sathya Nagar Main Road, Ramapuram, Chennai 600089, India
+          </p>
+        </div>
+        
+        <div className="flex flex-col items-center md:items-end gap-2 text-xs text-slate-300">
+          <a href="mailto:hello@thefirststepsolutions.co" className="hover:text-pink-400 transition-colors font-medium">hello@thefirststepsolutions.co</a>
+          <a href="tel:+914431536968" className="hover:text-pink-400 transition-colors font-medium">+91 44 3153 6968</a>
+          <div className="text-slate-500 mt-1">Mon–Sat · 9:30am to 6.30pm IST</div>
+          <div className="flex gap-4 mt-3">
+            <a href="https://www.instagram.com/thefirststepsolutions/" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white transition-colors">Instagram</a>
+            <a href="https://www.linkedin.com/company/the-first-step-solutions/" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white transition-colors">LinkedIn</a>
+            <a href="https://www.youtube.com/@thefirststepsolutions" target="_blank" rel="noreferrer" className="text-slate-400 hover:text-white transition-colors">YouTube</a>
+          </div>
+        </div>
+      </footer>
 
       {isWindowBlurred && (
         <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[9999] flex flex-col items-center justify-center text-center p-6 select-none pointer-events-auto">
@@ -697,9 +718,15 @@ export default function ShareView() {
             <Lock className="w-8 h-8" />
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Screenshot Protected</h2>
-          <p className="text-sm text-slate-400 max-w-sm">
-            This showcase is protected under security policies. Content is hidden when the viewer loses focus.
+          <p className="text-sm text-slate-400 max-w-sm mb-6">
+            This showcase is protected under security policies. Content is hidden when the viewer loses focus or when a screenshot is attempted.
           </p>
+          <button 
+            onClick={() => setIsWindowBlurred(false)}
+            className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold shadow-lg transition-all"
+          >
+            Click to Resume
+          </button>
           <div className="mt-8 text-[10px] text-slate-600 font-mono tracking-widest uppercase">
             Insight3D Security Shield
           </div>
