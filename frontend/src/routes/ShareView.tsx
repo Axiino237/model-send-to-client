@@ -7,6 +7,7 @@ import {
   FileText, Download, FileArchive, FileImage, Image as ImageIcon,
   ChevronLeft, ChevronRight, Eye
 } from 'lucide-react';
+import logoImg from '../assets/logo-DI6Uy_T8.png';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://model-send-to-client.onrender.com';
 
@@ -426,17 +427,8 @@ export default function ShareView() {
         <header className="glass-panel border border-white/10 p-4 md:p-6 rounded-2xl md:rounded-3xl backdrop-blur-xl shadow-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6 relative overflow-hidden transition-all duration-300 hover:border-white/15">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
           <div className="flex items-center gap-4 z-10">
-            <div className="w-12 h-12 rounded-2xl bg-[#0a0a0e] flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/5">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 drop-shadow-md">
-                <path d="M12 2L2 22L12 18L22 22L12 2Z" fill="url(#gradient-logo)"/>
-                <defs>
-                  <linearGradient id="gradient-logo" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
-                    <stop stopColor="#00BFFF" />
-                    <stop offset="0.5" stopColor="#FF1493" />
-                    <stop offset="1" stopColor="#FF8C00" />
-                  </linearGradient>
-                </defs>
-              </svg>
+            <div className="w-12 h-12 rounded-2xl bg-[#0a0a0e] flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/5 overflow-hidden">
+              <img src={logoImg} alt="The First Step Solutions" className="w-full h-full object-cover" />
             </div>
             <div>
               <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-white mb-1">
