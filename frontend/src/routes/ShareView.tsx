@@ -427,9 +427,11 @@ export default function ShareView() {
         <header className="glass-panel border border-white/10 p-4 md:p-6 rounded-2xl md:rounded-3xl backdrop-blur-xl shadow-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6 relative overflow-hidden transition-all duration-300 hover:border-white/15">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
           <div className="flex items-center gap-4 z-10">
-            <div className="w-12 h-12 rounded-2xl bg-[#0a0a0e] flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/5 overflow-hidden">
-              <img src={logoImg} alt="The First Step Solutions" className="w-full h-full object-cover" />
-            </div>
+            <img 
+              src={logoImg} 
+              alt="The First Step Solutions" 
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shadow-lg shadow-blue-500/20 object-cover border border-white/10" 
+            />
             <div>
               <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-white mb-1">
                 The <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500">First Step</span> <span className="text-[#00e5ff]">Solutions</span>
