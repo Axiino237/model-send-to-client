@@ -697,6 +697,21 @@ export default function ShareView() {
         </div>
       </footer>
 
+      {/* axiion.com attribution */}
+      <div className="w-full flex justify-center py-6 z-10">
+        <a
+          href="https://www.axiino.com"
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/3 border border-white/8 hover:bg-white/6 hover:border-white/15 transition-all duration-200 group"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-blue-400 group-hover:bg-blue-300 transition-colors animate-pulse"></span>
+          <span className="text-[10px] text-slate-500 group-hover:text-slate-300 transition-colors font-medium tracking-wide">
+            Developed by <span className="text-blue-400 group-hover:text-blue-300 font-semibold">axiino</span>
+          </span>
+        </a>
+      </div>
+
       {isWindowBlurred && (
         <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md z-[9999] flex flex-col items-center justify-center text-center p-6 select-none pointer-events-auto">
           <div className="w-16 h-16 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400 mb-6 animate-pulse">
