@@ -556,7 +556,7 @@ export default function Dashboard() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-screen overflow-y-auto custom-scrollbar z-10 relative">
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto custom-scrollbar relative">
         {/* Background radial overlays inside main area */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] rounded-full bg-blue-600/5 blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full bg-indigo-600/5 blur-[120px] pointer-events-none"></div>
