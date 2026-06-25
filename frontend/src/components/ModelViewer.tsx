@@ -389,7 +389,7 @@ export default function ModelViewer({ modelUrl, modelName, companyName, clientNa
             </p>
           </div>
         }>
-          <Canvas camera={{ position: [0, 0, 5], fov: 45 }} gl={{ preserveDrawingBuffer: true, logarithmicDepthBuffer: true }}>
+          <Canvas camera={{ position: [0, 0, 5], fov: 45, near: 0.1, far: 2000 }} gl={{ preserveDrawingBuffer: true }}>
             <ambientLight intensity={ambientIntensity} />
             <directionalLight position={[10, 10, 5]} intensity={directionalIntensity} />
             <directionalLight position={[-10, -10, -5]} intensity={0.5} />
