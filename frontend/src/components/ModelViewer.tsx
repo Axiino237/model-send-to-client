@@ -82,13 +82,18 @@ function applyMaterialProperties(obj: any, wireframe: boolean) {
   obj.traverse((child: any) => {
     if (child.isMesh) {
       if (child.material) {
-        if (Array.isArray(child.material)) {
-          child.material.forEach((m: any) => {
-            m.wireframe = wireframe;
-          });
-        } else {
-          child.material.wireframe = wireframe;
-        }
+        const mats = Array.isArray(child.material) ? child.material : [child.material];
+        mats.forEach((m: any) => {
+          m.wireframe = wireframe;
+          
+          // Fix Z-fighting for decals/text by pulling transparent materials forward
+          if (m.transparent || m.alphaTest > 0 || m.opacity < 1) {
+            m.polygonOffset = true;
+            m.polygonOffsetFactor = -4;
+            m.polygonOffsetUnits = -4;
+            m.depthWrite = false;
+          }
+        });
       }
     }
   });
