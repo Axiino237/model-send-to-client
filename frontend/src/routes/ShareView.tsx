@@ -3,9 +3,9 @@ import { useParams } from 'react-router-dom';
 import { useShareStore } from '../store/shareStore';
 import ModelViewer from '../components/ModelViewer';
 import {
-  Box, Lock, ShieldAlert, ArrowRight, HardDrive, Calendar,
+  Box, Lock, ShieldAlert, ArrowRight,
   FileText, Download, FileArchive, FileImage, Image as ImageIcon,
-  Layers, ChevronLeft, ChevronRight, User, Eye
+  ChevronLeft, ChevronRight, Eye
 } from 'lucide-react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://model-send-to-client.onrender.com';
