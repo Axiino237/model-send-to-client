@@ -422,13 +422,12 @@ export default function ShareView() {
       <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] rounded-full bg-purple-600/5 blur-[100px] pointer-events-none"></div>
 
       <div className="max-w-4xl w-full mx-auto flex-1 flex flex-col gap-4 sm:gap-6 z-10 justify-center">
-        {/* Header Panel - The First Step Solutions Navbar */}
-        <header className="glass-panel border border-white/5 p-2 pl-6 pr-2 rounded-full backdrop-blur-2xl shadow-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6 relative overflow-visible transition-all duration-300 bg-[#0a0a0e]/80">
-          {/* Logo Section */}
-          <div className="flex items-center gap-3 z-10 shrink-0">
-            <div className="w-8 h-8 relative flex items-center justify-center shrink-0">
-              {/* Origami bird logo SVG placeholder */}
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 drop-shadow-md">
+        {/* Header Panel */}
+        <header className="glass-panel border border-white/10 p-4 md:p-6 rounded-2xl md:rounded-3xl backdrop-blur-xl shadow-2xl flex flex-col md:flex-row md:justify-between md:items-center gap-4 md:gap-6 relative overflow-hidden transition-all duration-300 hover:border-white/15">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-transparent to-indigo-500/5 pointer-events-none"></div>
+          <div className="flex items-center gap-4 z-10">
+            <div className="w-12 h-12 rounded-2xl bg-[#0a0a0e] flex items-center justify-center shadow-lg shadow-blue-500/20 border border-white/5">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 drop-shadow-md">
                 <path d="M12 2L2 22L12 18L22 22L12 2Z" fill="url(#gradient-logo)"/>
                 <defs>
                   <linearGradient id="gradient-logo" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
@@ -439,41 +438,27 @@ export default function ShareView() {
                 </defs>
               </svg>
             </div>
-            <div className="text-white font-bold text-lg tracking-tight flex items-center gap-1.5 whitespace-nowrap">
-              <span>The</span>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500">First Step</span>
-              <span className="text-[#00e5ff]">Solutions</span>
+            <div>
+              <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-white mb-1">
+                The <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-rose-400 to-pink-500">First Step</span> <span className="text-[#00e5ff]">Solutions</span>
+              </h1>
+              <p className="text-xs text-blue-400 font-medium tracking-wide uppercase">{clientName || 'Interactive Viewer'}</p>
             </div>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-1 z-10">
-            <a href="#" className="px-5 py-2 rounded-full bg-[#1c1c24] text-white text-sm font-medium shadow-sm border border-white/5 transition-colors">Home</a>
-            <a href="#" className="px-5 py-2 text-slate-300 hover:text-white text-sm font-medium transition-colors rounded-full hover:bg-white/5">About</a>
-            <a href="#" className="px-5 py-2 text-slate-300 hover:text-white text-sm font-medium transition-colors rounded-full hover:bg-white/5">Services</a>
-            <a href="#" className="px-5 py-2 text-slate-300 hover:text-white text-sm font-medium transition-colors rounded-full hover:bg-white/5">Work</a>
-            <a href="#" className="px-5 py-2 text-slate-300 hover:text-white text-sm font-medium transition-colors rounded-full hover:bg-white/5">Contact</a>
-          </nav>
-
-          {/* Actions */}
-          <div className="flex items-center gap-3 z-10 shrink-0">
+          <div className="flex items-center gap-3 z-10">
             {unlockedFileUrl && (
-              <input
-                type="text"
-                placeholder="Watermark name..."
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                className="hidden xl:block bg-black/40 border border-white/10 px-4 py-2 rounded-full text-xs w-36 text-white placeholder:text-slate-500 focus:border-[#00e5ff]/50 outline-none transition-colors"
-                title="Add name to viewport watermark"
-              />
+              <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-4 w-full md:w-auto">
+                <input
+                  type="text"
+                  placeholder="Watermark name..."
+                  value={clientName}
+                  onChange={(e) => setClientName(e.target.value)}
+                  className="glass-input px-3 py-2 rounded-xl text-xs w-full md:w-40 placeholder:text-slate-500 focus:border-blue-500/80 text-white bg-black/20"
+                  title="Add name to viewport watermark"
+                />
+              </div>
             )}
-            <button className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-full border border-green-500/40 bg-gradient-to-b from-green-900/30 to-black/30 text-white text-sm font-medium transition-all hover:bg-green-900/40">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,1)]"></div>
-              Go to the Tree ↗
-            </button>
-            <button className="px-6 py-2 rounded-full bg-gradient-to-r from-orange-400 to-pink-500 text-white text-sm font-bold shadow-[0_4px_14px_rgba(236,72,153,0.3)] hover:shadow-[0_6px_20px_rgba(236,72,153,0.4)] hover:opacity-90 transition-all whitespace-nowrap">
-              Let's Talk
-            </button>
           </div>
         </header>
 
