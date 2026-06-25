@@ -430,7 +430,7 @@ export default function ShareView() {
             <img 
               src={logoImg} 
               alt="The First Step Solutions" 
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl shadow-lg shadow-blue-500/20 object-cover border border-white/10" 
+              className="w-12 h-12 sm:w-14 sm:h-14 object-contain drop-shadow-md" 
             />
             <div>
               <h1 className="text-xl md:text-2xl font-extrabold tracking-tight text-white mb-1">
