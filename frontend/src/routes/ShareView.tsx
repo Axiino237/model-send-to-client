@@ -26,7 +26,7 @@ export default function ShareView() {
   const [password, setPassword] = useState('');
   const [unlockError, setUnlockError] = useState('');
   const [unlocking, setUnlocking] = useState(false);
-  const [clientName, setClientName] = useState('');
+  const [clientName] = useState('');
   const [hasLoggedView, setHasLoggedView] = useState(false);
   const [analyticsId, setAnalyticsId] = useState<string | null>(null);
 
