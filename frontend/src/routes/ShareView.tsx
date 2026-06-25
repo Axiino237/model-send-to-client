@@ -440,17 +440,11 @@ export default function ShareView() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 z-10">
-            {unlockedFileUrl && (
-              <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-white/10 pt-4 md:pt-0 md:pl-4 w-full md:w-auto">
-                <input
-                  type="text"
-                  placeholder="Watermark name..."
-                  value={clientName}
-                  onChange={(e) => setClientName(e.target.value)}
-                  className="glass-input px-3 py-2 rounded-xl text-xs w-full md:w-40 placeholder:text-slate-500 focus:border-blue-500/80 text-white bg-black/20"
-                  title="Add name to viewport watermark"
-                />
+          <div className="flex items-center gap-4 z-10">
+            {unlockedFileUrl && activeShare?.model?.size && (
+              <div className="flex flex-col items-end border-l border-white/10 pl-4">
+                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">File Size</span>
+                <span className="text-sm font-bold text-white font-mono">{formatBytes(activeShare.model.size)}</span>
               </div>
             )}
           </div>
